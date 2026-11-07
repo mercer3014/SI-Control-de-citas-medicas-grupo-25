@@ -36,7 +36,7 @@ class RolController extends Controller
         ]);
 
         if ($request->has('permisos')) {
-            $rol->permisos()->sync($request->permisos);
+            $rol->permisos()->sync($request->input('permisos', []));
         }
 
         BitacoraService::registrar(

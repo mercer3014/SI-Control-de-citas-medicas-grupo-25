@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\UsuarioModel;
 use App\Services\BitacoraService;
 use App\Services\ResendService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -96,7 +97,7 @@ class PasswordResetController extends Controller
         }
 
         // Validar expiración de 15 minutos
-        if (now()->diffInMinutes($resetRecord->created_at) > 15) {
+        if (Carbon::parse($resetRecord->created_at)->addMinutes(15)->isPast()) {
             return back()->withErrors(['token' => 'El código ha expirado. Por favor solicita uno nuevo.']);
         }
 

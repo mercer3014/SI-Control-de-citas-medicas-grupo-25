@@ -110,6 +110,7 @@
 
                   <!-- Alternar Estado (Activar/Desactivar) -->
                   <button 
+                    v-if="u.id !== $page.props.auth?.user?.id"
                     @click="confirmToggleState(u)" 
                     class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white transition cursor-pointer hover:bg-slate-100 text-slate-500 hover:text-slate-800"
                     :title="u.estado ? 'Desactivar usuario' : 'Activar usuario'"
@@ -121,17 +122,36 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </button>
+                  <span 
+                    v-else 
+                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed" 
+                    title="Tu propia cuenta activa"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </span>
 
                   <!-- Eliminar Usuario (Baja Lógica) -->
                   <button 
+                    v-if="u.id !== $page.props.auth?.user?.id"
                     @click="confirmDelete(u)" 
                     class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                    title="Eliminar usuario"
+                    title="Eliminar usuario (Baja lógica)"
                   >
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
+                  <span 
+                    v-else 
+                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed" 
+                    title="No puedes eliminar tu propia cuenta"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  </span>
                 </div>
               </td>
             </tr>
@@ -186,6 +206,7 @@
                 <option value="F">Femenino (F)</option>
                 <option value="O">Otro (O)</option>
               </select>
+              <p v-if="form.errors.genero" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.genero }}</p>
             </div>
           </div>
 
@@ -193,10 +214,12 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-700 mb-1">Nombres *</label>
               <input v-model="form.nombres" type="text" required class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+              <p v-if="form.errors.nombres" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.nombres }}</p>
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-700 mb-1">Apellidos *</label>
               <input v-model="form.apellidos" type="text" required class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+              <p v-if="form.errors.apellidos" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.apellidos }}</p>
             </div>
           </div>
 
@@ -204,16 +227,19 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-700 mb-1">Fecha de Nacimiento *</label>
               <input v-model="form.fecha_nacimiento" type="date" required class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+              <p v-if="form.errors.fecha_nacimiento" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.fecha_nacimiento }}</p>
             </div>
             <div>
               <label class="block text-[11px] font-medium text-slate-700 mb-1">Teléfono</label>
               <input v-model="form.telefono" type="text" placeholder="ej. 75012345" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+              <p v-if="form.errors.telefono" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.telefono }}</p>
             </div>
           </div>
 
           <div>
             <label class="block text-[11px] font-medium text-slate-700 mb-1">Dirección de Domicilio</label>
             <input v-model="form.direccion" type="text" placeholder="Calle, Barrio o Zona" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+            <p v-if="form.errors.direccion" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.direccion }}</p>
           </div>
 
           <!-- Sección Credenciales de Usuario -->
@@ -230,6 +256,7 @@
               <select v-model="form.rol_id" required class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none">
                 <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.nombre }}</option>
               </select>
+              <p v-if="form.errors.rol_id" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.rol_id }}</p>
             </div>
           </div>
 
@@ -244,6 +271,7 @@
                 {{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña *' }}
               </label>
               <input v-model="form.password" type="password" :required="!isEditing" placeholder="••••••••" class="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none" />
+              <p v-if="form.errors.password" class="text-[10px] text-rose-600 mt-0.5">{{ form.errors.password }}</p>
             </div>
           </div>
 
@@ -273,12 +301,12 @@
       @close="showConfirmToggleModal = false"
     />
 
-    <!-- Diálogo Modal: Eliminar Usuario -->
+    <!-- Diálogo Modal: Eliminar Usuario (Baja Lógica) -->
     <DialogModal
       :show="showDeleteModal"
-      title="Eliminar Usuario"
-      :message="`¿Estás seguro de que deseas eliminar al usuario '${userToDelete?.username}'?`"
-      confirm-text="Eliminar"
+      title="Eliminar Usuario (Baja Lógica)"
+      :message="`¿Estás seguro de que deseas dar de baja al usuario '${userToDelete?.username}'? Se ejecutará una baja lógica (estado inactivo), manteniendo intacto todo el historial de consultas, atenciones y auditoría.`"
+      confirm-text="Confirmar Eliminación"
       cancel-text="Cancelar"
       type="danger"
       @confirm="executeDelete"

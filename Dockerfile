@@ -5,10 +5,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         libpq-dev \
         libzip-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
         curl \
         ca-certificates \
         gnupg \
-    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql zip bcmath pcntl opcache \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql zip bcmath pcntl opcache gd \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && corepack enable \
@@ -26,7 +30,7 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
 WORKDIR /var/www/html
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --ignore-platform-req=ext-gd
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile

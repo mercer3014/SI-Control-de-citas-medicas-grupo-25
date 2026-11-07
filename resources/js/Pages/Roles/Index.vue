@@ -75,32 +75,70 @@
           </div>
         </div>
 
-        <!-- Matriz Unificada de Permisos -->
-        <div class="p-5">
-          <div class="mb-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            Permisos disponibles ({{ currentSelectedPermisos.length }} de {{ permisos.length }} activos)
+        <!-- Matriz Agrupada de Permisos por Módulo Funcional -->
+        <div class="p-5 space-y-6">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+              Permisos del Sistema ({{ currentSelectedPermisos.length }} de {{ permisos.length }} activos)
+            </div>
+            <span class="text-[11px] text-slate-500 font-medium">
+              Actualización dinámica en tiempo real
+            </span>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <label
-              v-for="p in permisos"
-              :key="p.id"
-              class="flex items-start gap-2.5 p-2.5 rounded border transition cursor-pointer select-none"
-              :class="isPermissionChecked(p.id)
-                ? 'bg-slate-50 border-slate-400'
-                : 'bg-white border-slate-200 hover:bg-slate-50/60'"
-            >
-              <input
-                type="checkbox"
-                :checked="isPermissionChecked(p.id)"
-                @change="togglePermission(p.id)"
-                class="mt-0.5 rounded text-slate-900 focus:ring-slate-600 cursor-pointer"
-              />
-              <div class="leading-tight">
-                <span class="text-xs font-semibold text-slate-800 block">{{ p.nombre }}</span>
-                <span class="text-[11px] text-slate-500 block mt-0.5 leading-snug">{{ p.descripcion }}</span>
+          <!-- Secciones de Permisos Agrupadas -->
+          <div
+            v-for="(moduloPermisos, moduloNombre) in groupedPermisos"
+            :key="moduloNombre"
+            class="space-y-2.5"
+          >
+            <div class="flex items-center justify-between bg-slate-50/90 px-3 py-1.5 rounded border border-slate-200">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-800">{{ moduloNombre }}</span>
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono font-medium">
+                  {{ getModuloSelectedCount(moduloPermisos) }} / {{ moduloPermisos.length }}
+                </span>
               </div>
-            </label>
+              <div class="flex items-center gap-2 text-[11px] text-slate-600">
+                <button
+                  type="button"
+                  @click="toggleGroup(moduloPermisos, true)"
+                  class="hover:text-slate-900 hover:underline cursor-pointer"
+                >
+                  Marcar grupo
+                </button>
+                <span class="text-slate-300">|</span>
+                <button
+                  type="button"
+                  @click="toggleGroup(moduloPermisos, false)"
+                  class="hover:text-slate-900 hover:underline cursor-pointer"
+                >
+                  Desmarcar
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <label
+                v-for="p in moduloPermisos"
+                :key="p.id"
+                class="flex items-start gap-2.5 p-2.5 rounded border transition cursor-pointer select-none"
+                :class="isPermissionChecked(p.id)
+                  ? 'bg-slate-50 border-slate-400 shadow-xs'
+                  : 'bg-white border-slate-200 hover:bg-slate-50/60'"
+              >
+                <input
+                  type="checkbox"
+                  :checked="isPermissionChecked(p.id)"
+                  @change="togglePermission(p.id)"
+                  class="mt-0.5 rounded text-slate-900 focus:ring-slate-600 cursor-pointer"
+                />
+                <div class="leading-tight">
+                  <span class="text-xs font-semibold text-slate-800 block">{{ p.nombre }}</span>
+                  <span class="text-[11px] text-slate-500 block mt-0.5 leading-snug">{{ p.descripcion }}</span>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -144,6 +182,50 @@ const currentSelectedPermisos = computed(() => {
   if (!selectedRoleId.value) return [];
   return rolePermissionsMap[selectedRoleId.value] || [];
 });
+
+const moduloCategorias = {
+  gestionar_usuarios: 'Seguridad y Auditoría',
+  gestionar_roles: 'Seguridad y Auditoría',
+  ver_bitacora: 'Seguridad y Auditoría',
+  gestionar_backups: 'Seguridad y Auditoría',
+  gestionar_especialidades: 'Catálogos Clínicos y Personal',
+  gestionar_medicos: 'Catálogos Clínicos y Personal',
+  gestionar_pacientes: 'Catálogos Clínicos y Personal',
+  gestionar_horarios: 'Turnos y Disponibilidad Médica',
+  programar_citas: 'Agenda y Citas Médicas',
+  cancelar_citas: 'Agenda y Citas Médicas',
+  registrar_atencion: 'Atención Médica y Diagnóstico',
+  ver_reportes: 'Reportes y Estadísticas',
+};
+
+const groupedPermisos = computed(() => {
+  const groups = {};
+  (props.permisos || []).forEach(p => {
+    const mod = moduloCategorias[p.nombre] || 'Otros Permisos';
+    if (!groups[mod]) {
+      groups[mod] = [];
+    }
+    groups[mod].push(p);
+  });
+  return groups;
+});
+
+const getModuloSelectedCount = (moduloPermisos) => {
+  return moduloPermisos.filter(p => isPermissionChecked(p.id)).length;
+};
+
+const toggleGroup = (moduloPermisos, select) => {
+  if (!selectedRoleId.value) return;
+  const list = rolePermissionsMap[selectedRoleId.value] || [];
+  moduloPermisos.forEach(p => {
+    const idx = list.indexOf(p.id);
+    if (select && idx === -1) {
+      list.push(p.id);
+    } else if (!select && idx > -1) {
+      list.splice(idx, 1);
+    }
+  });
+};
 
 const isPermissionChecked = (permisoId) => {
   return currentSelectedPermisos.value.includes(permisoId);
