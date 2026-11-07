@@ -1,6 +1,14 @@
 <template>
   <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-stone-200/70 bg-white/80 px-5 backdrop-blur-md">
     <div class="flex items-center gap-3 min-w-0">
+      <button
+        type="button"
+        @click="$emit('toggle-sidebar')"
+        class="lg:hidden -ml-1.5 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition cursor-pointer"
+        title="Abrir menú"
+      >
+        <AppIcon name="menu" class="h-5 w-5" />
+      </button>
       <h2 class="truncate text-[15px] font-bold tracking-tight text-stone-800">
         <slot name="title">Sistema Clínico</slot>
       </h2>
@@ -66,7 +74,7 @@ import AppIcon from './AppIcon.vue';
 import Avatar from './Avatar.vue';
 import StatusBadge from './StatusBadge.vue';
 
-const emit = defineEmits(['request-logout']);
+const emit = defineEmits(['request-logout', 'toggle-sidebar']);
 
 const page = usePage();
 const menuOpen = ref(false);

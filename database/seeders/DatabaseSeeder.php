@@ -16,6 +16,10 @@ use App\Models\MedicoEspecialidadModel;
 use App\Models\PacienteModel;
 use App\Models\AntecedenteMedicoModel;
 use App\Models\BitacoraModel;
+use App\Models\HorarioAtencionModel;
+use App\Models\AusenciaMedicaModel;
+use App\Models\CitaModel;
+use App\Models\AtencionClinicaModel;
 
 class DatabaseSeeder extends Seeder
 {
@@ -513,7 +517,221 @@ class DatabaseSeeder extends Seeder
         }
 
         // -------------------------------------------------------------
-        // 10. SINCRONIZACIÓN DE SECUENCIAS POSTGRESQL (SERIAL / PKEY)
+        // 10. HORARIOS DE ATENCIÓN REGULARES (CU-09)
+        // -------------------------------------------------------------
+        $medicoEsps = MedicoEspecialidadModel::all();
+        foreach ($medicoEsps as $me) {
+            // Lunes matutino (08:00 - 12:00)
+            HorarioAtencionModel::updateOrCreate(
+                ['medico_especialidad_id' => $me->id, 'dia_id' => 1, 'hora_inicio' => '08:00:00'],
+                ['hora_fin' => '12:00:00', 'intervalo_minutos' => 30, 'estado' => true]
+            );
+
+            // Miércoles vespertino (14:00 - 18:00)
+            HorarioAtencionModel::updateOrCreate(
+                ['medico_especialidad_id' => $me->id, 'dia_id' => 3, 'hora_inicio' => '14:00:00'],
+                ['hora_fin' => '18:00:00', 'intervalo_minutos' => 30, 'estado' => true]
+            );
+
+            // Viernes matutino (09:00 - 13:00)
+            HorarioAtencionModel::updateOrCreate(
+                ['medico_especialidad_id' => $me->id, 'dia_id' => 5, 'hora_inicio' => '09:00:00'],
+                ['hora_fin' => '13:00:00', 'intervalo_minutos' => 30, 'estado' => true]
+            );
+        }
+
+        // -------------------------------------------------------------
+        // 11. AUSENCIAS Y EXCEPCIONES MÉDICAS (CU-10)
+        // -------------------------------------------------------------
+        $medicosList = MedicoModel::all();
+        if ($medicosList->count() >= 2) {
+            AusenciaMedicaModel::updateOrCreate(
+                ['medico_id' => $medicosList[1]->id, 'fecha_inicio' => now()->addDays(15)->toDateString()],
+                ['fecha_fin' => now()->addDays(20)->toDateString(), 'motivo' => 'Participación en Congreso Nacional de Pediatría']
+            );
+
+            AusenciaMedicaModel::updateOrCreate(
+                ['medico_id' => $medicosList[0]->id, 'fecha_inicio' => now()->addDays(25)->toDateString()],
+                ['fecha_fin' => now()->addDays(28)->toDateString(), 'motivo' => 'Vacaciones de invierno autorizadas']
+            );
+        }
+
+        // -------------------------------------------------------------
+        // 12. CITAS MÉDICAS Y REGISTRO CLÍNICO (CU-11, 12, 13, 14, 15)
+        // -------------------------------------------------------------
+        $pacientesList = PacienteModel::all();
+        if ($medicoEsps->count() > 0 && $pacientesList->count() > 0) {
+            $citasSeed = [
+                // 1-8 Atendidas (con diagnóstico clínico)
+                [
+                    'codigo' => 'CIT-2026-0001', 'pac_idx' => 0, 'me_idx' => 0, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(6)->toDateString(), 'ini' => '08:00', 'fin' => '08:30',
+                    'motivo' => 'Control rutinario de hipertensión y palpitaciones ocasionales',
+                    'diag' => 'Hipertensión arterial estadio 1 controlada.',
+                    'trat' => 'Enalapril 10mg cada 12 hrs. Reducción de ingesta de sodio. Control en 30 días.',
+                    'notas' => 'Paciente presenta buena tolerancia al fármaco. Presión arterial en consulta: 130/80 mmHg.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0002', 'pac_idx' => 1, 'me_idx' => 1, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(5)->toDateString(), 'ini' => '08:30', 'fin' => '09:00',
+                    'motivo' => 'Fiebre de 38.5°C y dolor de garganta desde hace 2 días',
+                    'diag' => 'Faringitis estreptocócica aguda con exudado amigdalino.',
+                    'trat' => 'Amoxicilina + Ácido Clavulánico 875/125mg cada 12h por 7 días. Ibuprofeno 400mg cada 8h condicional.',
+                    'notas' => 'Se indica hidratación abundante y reposo relativo por 48 horas.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0003', 'pac_idx' => 2, 'me_idx' => 2, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(4)->toDateString(), 'ini' => '14:00', 'fin' => '14:30',
+                    'motivo' => 'Dolor lumbar moderado tras levantar peso',
+                    'diag' => 'Lumbalgia mecánica aguda por esfuerzo muscular.',
+                    'trat' => 'Diclofenaco 50mg + Complejo B cada 12h por 5 días. Fisioterapia calor seco local.',
+                    'notas' => 'Sin compromiso radicular evidenciado en maniobra de Lasègue negativa.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0004', 'pac_idx' => 3, 'me_idx' => 3, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(3)->toDateString(), 'ini' => '14:30', 'fin' => '15:00',
+                    'motivo' => 'Chequeo ginecológico y citología anual',
+                    'diag' => 'Control ginecológico de rutina sin hallazgos patológicos.',
+                    'trat' => 'Tomas de muestra enviadas a laboratorio de patología.',
+                    'notas' => 'Ecografía pélvica de control dentro de parámetros normales.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0005', 'pac_idx' => 4, 'me_idx' => 4, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(3)->toDateString(), 'ini' => '09:00', 'fin' => '09:30',
+                    'motivo' => 'Sensibilidad dental en cuadrante superior izquierdo',
+                    'diag' => 'Caries dental en pieza 24 con afectación de esmalte.',
+                    'trat' => 'Obturación con resina compuesta fotocurable y profilaxis dental.',
+                    'notas' => 'Procedimiento concluido sin complicaciones ni dolor referido.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0006', 'pac_idx' => 5, 'me_idx' => 5, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(2)->toDateString(), 'ini' => '09:30', 'fin' => '10:00',
+                    'motivo' => 'Erupción cutánea pruriginosa en extremidades',
+                    'diag' => 'Dermatitis por contacto alérgica subaguda.',
+                    'trat' => 'Cetirizina 10mg diaria por 10 días. Crema de Hidrocortisona al 1% dos veces al día por 5 días.',
+                    'notas' => 'Evitar contacto con jabones perfumados y detergentes sin guantes.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0007', 'pac_idx' => 6, 'me_idx' => 6, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(1)->toDateString(), 'ini' => '08:00', 'fin' => '08:30',
+                    'motivo' => 'Disminución progresiva de agudeza visual de lejos',
+                    'diag' => 'Miopía simple con astigmatismo bilateral.',
+                    'trat' => 'Prescripción óptica: OD -1.25 cil -0.50 eje 180°, OI -1.50 cil -0.75 eje 175°.',
+                    'notas' => 'Fondo de ojo normal, sin signos de retinopatía.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0008', 'pac_idx' => 7, 'me_idx' => 7, 'estado' => EstadoCitaModel::ATENDIDA,
+                    'fecha' => now()->subDays(1)->toDateString(), 'ini' => '10:00', 'fin' => '10:30',
+                    'motivo' => 'Cefalea pulsátil hemicraneal con fotofobia',
+                    'diag' => 'Migraña sin aura episódica de frecuencia moderada.',
+                    'trat' => 'Zolmitriptán 2.5mg al inicio del dolor agudo. Propranolol 40mg diario como preventivo.',
+                    'notas' => 'Se indica llevar diario de cefaleas para identificar detonantes alimenticios.',
+                ],
+
+                // 9-16 Programadas / Confirmadas (Hoy y días siguientes)
+                [
+                    'codigo' => 'CIT-2026-0009', 'pac_idx' => 0, 'me_idx' => 0, 'estado' => EstadoCitaModel::PROGRAMADA,
+                    'fecha' => now()->toDateString(), 'ini' => '10:00', 'fin' => '10:30',
+                    'motivo' => 'Revisión periódica de presión arterial y ajuste de medicación',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0010', 'pac_idx' => 1, 'me_idx' => 1, 'estado' => EstadoCitaModel::CONFIRMADA,
+                    'fecha' => now()->toDateString(), 'ini' => '10:30', 'fin' => '11:00',
+                    'motivo' => 'Control de niño sano y verificación del esquema de vacunas',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0011', 'pac_idx' => 2, 'me_idx' => 2, 'estado' => EstadoCitaModel::PROGRAMADA,
+                    'fecha' => now()->addDays(1)->toDateString(), 'ini' => '08:00', 'fin' => '08:30',
+                    'motivo' => 'Revisión de resonancia magnética de rodilla derecha',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0012', 'pac_idx' => 3, 'me_idx' => 3, 'estado' => EstadoCitaModel::CONFIRMADA,
+                    'fecha' => now()->addDays(1)->toDateString(), 'ini' => '09:00', 'fin' => '09:30',
+                    'motivo' => 'Resultados de laboratorio y control prenatal',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0013', 'pac_idx' => 4, 'me_idx' => 4, 'estado' => EstadoCitaModel::PROGRAMADA,
+                    'fecha' => now()->addDays(2)->toDateString(), 'ini' => '14:00', 'fin' => '14:30',
+                    'motivo' => 'Limpieza dental profunda y evaluación de encías',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0014', 'pac_idx' => 5, 'me_idx' => 5, 'estado' => EstadoCitaModel::CONFIRMADA,
+                    'fecha' => now()->addDays(2)->toDateString(), 'ini' => '15:00', 'fin' => '15:30',
+                    'motivo' => 'Revisión de lunar con bordes asimétricos en espalda',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0015', 'pac_idx' => 6, 'me_idx' => 6, 'estado' => EstadoCitaModel::PROGRAMADA,
+                    'fecha' => now()->addDays(3)->toDateString(), 'ini' => '10:00', 'fin' => '10:30',
+                    'motivo' => 'Evaluación de presión intraocular y descarte de glaucoma',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0016', 'pac_idx' => 7, 'me_idx' => 7, 'estado' => EstadoCitaModel::CONFIRMADA,
+                    'fecha' => now()->addDays(4)->toDateString(), 'ini' => '11:00', 'fin' => '11:30',
+                    'motivo' => 'Control evolutivo de mareos posturales',
+                ],
+
+                // 17-20 Canceladas (con motivo explícito)
+                [
+                    'codigo' => 'CIT-2026-0017', 'pac_idx' => 8, 'me_idx' => 0, 'estado' => EstadoCitaModel::CANCELADA,
+                    'fecha' => now()->subDays(2)->toDateString(), 'ini' => '11:00', 'fin' => '11:30',
+                    'motivo' => 'Chequeo cardiológico preventivo',
+                    'cancel_motivo' => 'Paciente tuvo que viajar de urgencia por razones familiares.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0018', 'pac_idx' => 9, 'me_idx' => 1, 'estado' => EstadoCitaModel::CANCELADA,
+                    'fecha' => now()->subDays(1)->toDateString(), 'ini' => '11:30', 'fin' => '12:00',
+                    'motivo' => 'Evaluación pediátrica de crecimiento',
+                    'cancel_motivo' => 'Madre solicitó postergación por cruce de horario escolar.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0019', 'pac_idx' => 0, 'me_idx' => 2, 'estado' => EstadoCitaModel::CANCELADA,
+                    'fecha' => now()->addDays(2)->toDateString(), 'ini' => '16:00', 'fin' => '16:30',
+                    'motivo' => 'Molestia en tobillo izquierdo',
+                    'cancel_motivo' => 'Paciente canceló con 48h de antelación al mejorar síntomas.',
+                ],
+                [
+                    'codigo' => 'CIT-2026-0020', 'pac_idx' => 1, 'me_idx' => 3, 'estado' => EstadoCitaModel::CANCELADA,
+                    'fecha' => now()->addDays(3)->toDateString(), 'ini' => '17:00', 'fin' => '17:30',
+                    'motivo' => 'Consulta ginecológica general',
+                    'cancel_motivo' => 'Incompatibilidad de turno laboral no prevista.',
+                ],
+            ];
+
+            foreach ($citasSeed as $cs) {
+                $pId = $pacientesList[$cs['pac_idx'] % $pacientesList->count()]->id;
+                $meId = $medicoEsps[$cs['me_idx'] % $medicoEsps->count()]->id;
+
+                $cita = CitaModel::updateOrCreate(
+                    ['codigo_reserva' => $cs['codigo']],
+                    [
+                        'paciente_id' => $pId,
+                        'medico_especialidad_id' => $meId,
+                        'estado_id' => $cs['estado'],
+                        'fecha' => $cs['fecha'],
+                        'hora_inicio' => $cs['ini'],
+                        'hora_fin' => $cs['fin'],
+                        'motivo_consulta' => $cs['motivo'],
+                        'motivo_cancelacion' => $cs['cancel_motivo'] ?? null,
+                        'fecha_registro' => now()->subDays(7),
+                    ]
+                );
+
+                if ($cs['estado'] === EstadoCitaModel::ATENDIDA && isset($cs['diag'])) {
+                    AtencionClinicaModel::updateOrCreate(
+                        ['cita_id' => $cita->id],
+                        [
+                            'diagnostico' => $cs['diag'],
+                            'tratamiento' => $cs['trat'] ?? null,
+                            'notas_adicionales' => $cs['notas'] ?? null,
+                            'fecha_atencion' => $cs['fecha'] . ' ' . $cs['fin'] . ':00',
+                        ]
+                    );
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 13. SINCRONIZACIÓN DE SECUENCIAS POSTGRESQL (SERIAL / PKEY)
         // -------------------------------------------------------------
         if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
             $tablas = [
@@ -528,6 +746,10 @@ class DatabaseSeeder extends Seeder
                 'medico_especialidad',
                 'pacientes',
                 'antecedentes_medicos',
+                'horarios_atencion',
+                'ausencias_medicas',
+                'citas',
+                'atenciones_clinicas',
                 'bitacora',
             ];
             foreach ($tablas as $t) {

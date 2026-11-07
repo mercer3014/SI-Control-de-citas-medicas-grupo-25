@@ -29,6 +29,13 @@
             >
               {{ paciente.estado ? 'Paciente Activo' : 'Inactivo' }}
             </span>
+            <button
+              type="button"
+              @click="showToggleConfirm = true"
+              class="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition cursor-pointer"
+            >
+              {{ paciente.estado ? 'Desactivar' : 'Reactivar' }}
+            </button>
             <Link 
               :href="'/pacientes'" 
               class="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition"
@@ -105,14 +112,35 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmación de cambio de estado -->
+    <DialogModal
+      :show="showToggleConfirm"
+      :title="paciente.estado ? 'Desactivar paciente' : 'Reactivar paciente'"
+      :message="`¿Estás seguro de que deseas ${paciente.estado ? 'dar de baja lógica' : 'reactivar'} al paciente ${paciente.persona?.nombre_completo}?`"
+      :confirm-text="paciente.estado ? 'Sí, desactivar' : 'Sí, reactivar'"
+      cancel-text="Cancelar"
+      :type="paciente.estado ? 'warning' : 'info'"
+      @confirm="executeToggle"
+      @close="showToggleConfirm = false"
+    />
   </AppLayout>
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DialogModal from '@/Components/DialogModal.vue';
 
-defineProps({
+const props = defineProps({
   paciente: Object,
 });
+
+const showToggleConfirm = ref(false);
+
+const executeToggle = () => {
+  showToggleConfirm.value = false;
+  router.delete(`/pacientes/${props.paciente.id}`);
+};
 </script>
