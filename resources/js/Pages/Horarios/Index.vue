@@ -122,6 +122,119 @@
           </div>
         </div>
       </div>
+
+      <!-- Tabla Consolidada de Horarios con Enumeración y Filtro -->
+      <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Listado Consolidado de Turnos ({{ filteredHorariosTabla.length }})
+            </h4>
+          </div>
+
+          <!-- Filtros de la Tabla -->
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <select
+              v-model="filtroDiaTabla"
+              class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-slate-600 outline-none bg-white"
+            >
+              <option value="">Todos los días</option>
+              <option v-for="d in dias" :key="d.id" :value="d.id">{{ d.nombre }}</option>
+            </select>
+
+            <select
+              v-model="filtroEstadoTabla"
+              class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-slate-600 outline-none bg-white"
+            >
+              <option value="">Todos los estados</option>
+              <option value="1">Activos</option>
+              <option value="0">Inactivos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/60 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px]">
+                <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
+                <th class="py-2.5 px-3">Día</th>
+                <th class="py-2.5 px-3">Franja Horaria</th>
+                <th class="py-2.5 px-3">Especialidad</th>
+                <th class="py-2.5 px-3 text-center">Intervalo</th>
+                <th class="py-2.5 px-3 text-center">Estado</th>
+                <th class="py-2.5 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr
+                v-for="(h, index) in filteredHorariosTabla"
+                :key="h.id"
+                class="hover:bg-slate-50 transition"
+              >
+                <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                  {{ index + 1 }}
+                </td>
+                <td class="py-2.5 px-3 font-semibold text-slate-800">
+                  {{ getDiaNombre(h.dia_id) }}
+                </td>
+                <td class="py-2.5 px-3 font-mono font-bold text-slate-800">
+                  {{ formatHour(h.hora_inicio) }} - {{ formatHour(h.hora_fin) }}
+                </td>
+                <td class="py-2.5 px-3 text-slate-600">
+                  {{ h.especialidad_nombre }}
+                </td>
+                <td class="py-2.5 px-3 text-center font-mono text-slate-600">
+                  {{ h.intervalo_minutos }} min
+                </td>
+                <td class="py-2.5 px-3 text-center">
+                  <span
+                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium"
+                    :class="h.estado ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full" :class="h.estado ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                    {{ h.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td class="py-2.5 px-3 text-right">
+                  <div class="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click="confirmToggle(h)"
+                      class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white transition hover:bg-slate-100 cursor-pointer"
+                      :class="h.estado ? 'text-slate-500 hover:text-amber-600' : 'text-slate-500 hover:text-emerald-600'"
+                      :title="h.estado ? 'Desactivar bloque' : 'Activar bloque'"
+                    >
+                      <AppIcon :name="h.estado ? 'ban' : 'check'" class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="openEditModal(h)"
+                      class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition cursor-pointer"
+                      title="Editar horario"
+                    >
+                      <AppIcon name="pencil" class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="confirmDelete(h)"
+                      class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                      title="Eliminar bloque"
+                    >
+                      <AppIcon name="trash" class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="filteredHorariosTabla.length === 0">
+                <td colspan="7" class="py-8 text-center text-xs text-slate-400">
+                  No se encontraron turnos configurados con los filtros seleccionados.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Modal Formulario: Agregar / Editar Horario -->
@@ -292,6 +405,24 @@ const todosLosHorarios = computed(() => {
 const horariosPorDia = (diaId) => {
   return todosLosHorarios.value.filter((h) => Number(h.dia_id) === Number(diaId));
 };
+
+const filtroDiaTabla = ref('');
+const filtroEstadoTabla = ref('');
+
+const getDiaNombre = (diaId) => {
+  return props.dias.find((d) => Number(d.id) === Number(diaId))?.nombre || `Día ${diaId}`;
+};
+
+const filteredHorariosTabla = computed(() => {
+  return todosLosHorarios.value.filter((h) => {
+    if (filtroDiaTabla.value && Number(h.dia_id) !== Number(filtroDiaTabla.value)) return false;
+    if (filtroEstadoTabla.value !== '') {
+      const wantActive = filtroEstadoTabla.value === '1';
+      if (h.estado !== wantActive) return false;
+    }
+    return true;
+  });
+});
 
 const formatHour = (timeStr) => {
   if (!timeStr) return '';

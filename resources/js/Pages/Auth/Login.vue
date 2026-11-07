@@ -7,15 +7,6 @@
       <h1 class="text-2xl font-bold tracking-tight text-slate-900">Iniciar sesión</h1>
     </div>
 
-    <!-- Error general -->
-    <div
-      v-if="errorGeneral"
-      class="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700"
-    >
-      <AppIcon name="alert" class="mt-0.5 h-4 w-4 shrink-0" />
-      <span>{{ errorGeneral }}</span>
-    </div>
-
     <!-- Flash de éxito -->
     <div
       v-if="$page.props.flash?.success"
@@ -29,7 +20,7 @@
       <FormField
         id="email"
         label="Correo electrónico"
-        :error="form.errors.email"
+        :error="emailFieldError"
         required
       >
         <template #default="{ id }">
@@ -53,7 +44,7 @@
       <FormField
         id="password"
         label="Contraseña"
-        :error="form.errors.password"
+        :error="passwordFieldError"
         required
       >
         <template #default="{ id }">
@@ -129,7 +120,16 @@ const form = useForm({
   remember: false,
 });
 
-const errorGeneral = computed(() => form.errors.email || form.errors.login || '');
+const emailFieldError = computed(() => {
+  if (form.errors.email && form.errors.email.toLowerCase().includes('correo')) {
+    return form.errors.email;
+  }
+  return '';
+});
+
+const passwordFieldError = computed(() => {
+  return form.errors.password || form.errors.login || (form.errors.email && !form.errors.email.toLowerCase().includes('correo') ? form.errors.email : '');
+});
 
 const submit = () => {
   form.post('/login', {

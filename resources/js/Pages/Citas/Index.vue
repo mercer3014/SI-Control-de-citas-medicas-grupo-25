@@ -84,6 +84,7 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
+              <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
               <th class="py-2.5 px-3">Código</th>
               <th class="py-2.5 px-3">Paciente</th>
               <th class="py-2.5 px-3">Médico / Especialidad</th>
@@ -94,10 +95,13 @@
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="c in citas.data"
+              v-for="(c, index) in citas.data"
               :key="c.id"
               class="hover:bg-slate-50 transition"
             >
+              <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                {{ ((citas.current_page || 1) - 1) * (citas.per_page || 15) + index + 1 }}
+              </td>
               <!-- Código -->
               <td class="py-2.5 px-3 font-mono font-bold text-slate-800 text-[11px]">
                 {{ c.codigo_reserva }}
@@ -185,7 +189,7 @@
             </tr>
 
             <tr v-if="citas.data.length === 0">
-              <td colspan="6" class="py-8 text-center text-xs text-slate-400">
+              <td colspan="7" class="py-8 text-center text-xs text-slate-400">
                 No se encontraron citas médicas con los filtros seleccionados.
               </td>
             </tr>

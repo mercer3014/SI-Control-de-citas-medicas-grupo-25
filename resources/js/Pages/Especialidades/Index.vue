@@ -50,6 +50,7 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
+              <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
               <th class="py-2.5 px-3">Especialidad</th>
               <th class="py-2.5 px-3">Descripción</th>
               <th class="py-2.5 px-3 text-center">Médicos Asignados</th>
@@ -59,10 +60,13 @@
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr 
-              v-for="esp in especialidades.data" 
+              v-for="(esp, index) in especialidades.data" 
               :key="esp.id"
               class="hover:bg-slate-50 transition"
             >
+              <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                {{ ((especialidades.current_page || 1) - 1) * (especialidades.per_page || 15) + index + 1 }}
+              </td>
               <td class="py-2.5 px-3 font-semibold text-slate-800">
                 {{ esp.nombre }}
               </td>
@@ -119,7 +123,7 @@
             </tr>
 
             <tr v-if="especialidades.data.length === 0">
-              <td colspan="5" class="py-8 text-center text-xs text-slate-500">
+              <td colspan="6" class="py-8 text-center text-xs text-slate-500">
                 No se encontraron especialidades registradas.
               </td>
             </tr>

@@ -30,21 +30,38 @@
 
       <!-- Estado de las Tablas en la Base de Datos -->
       <div class="bg-white rounded border border-slate-200 shadow-xs overflow-hidden">
-        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
-          <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Tablas Registradas en la Base de Datos</h4>
+        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+          <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Tablas Registradas en la Base de Datos ({{ filteredTables.length }})</h4>
+          
+          <!-- Filtro de Tablas -->
+          <div class="relative w-full sm:w-64">
+            <input 
+              v-model="filtroTabla" 
+              type="text" 
+              placeholder="Filtrar por nombre de tabla..." 
+              class="w-full pl-8 pr-3 py-1.5 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none"
+            />
+            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-100/60 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px]">
+                <th class="py-2 px-3 text-center w-12 text-slate-500 font-mono">#</th>
                 <th class="py-2 px-4">Nombre de Tabla</th>
                 <th class="py-2 px-4 text-center">Registros Estimados</th>
                 <th class="py-2 px-4 text-right">Espacio Ocupado</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 font-mono">
-              <tr v-for="t in tables" :key="t.table_name" class="hover:bg-slate-50">
+              <tr v-for="(t, index) in filteredTables" :key="t.table_name" class="hover:bg-slate-50">
+                <td class="py-2 px-3 text-center text-slate-400 text-[11px] font-semibold">
+                  {{ index + 1 }}
+                </td>
                 <td class="py-2 px-4 font-semibold text-slate-800 font-sans">
                   {{ t.table_name }}
                 </td>
@@ -53,6 +70,11 @@
                 </td>
                 <td class="py-2 px-4 text-right text-slate-500">
                   {{ t.total_size }}
+                </td>
+              </tr>
+              <tr v-if="filteredTables.length === 0">
+                <td colspan="4" class="py-6 text-center text-xs text-slate-400 font-sans">
+                  No se encontraron tablas que coincidan con "{{ filtroTabla }}".
                 </td>
               </tr>
             </tbody>
@@ -64,11 +86,20 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
-defineProps({
+const props = defineProps({
   tables: Array,
   dbSize: String,
   dbName: String,
+});
+
+const filtroTabla = ref('');
+
+const filteredTables = computed(() => {
+  if (!filtroTabla.value) return props.tables || [];
+  const term = filtroTabla.value.toLowerCase().trim();
+  return (props.tables || []).filter(t => t.table_name?.toLowerCase().includes(term));
 });
 </script>

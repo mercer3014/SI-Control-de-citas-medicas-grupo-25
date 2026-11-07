@@ -47,6 +47,7 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
+              <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
               <th class="py-2.5 px-3">Médico</th>
               <th class="py-2.5 px-3">Período de Ausencia</th>
               <th class="py-2.5 px-3">Motivo / Justificación</th>
@@ -56,10 +57,13 @@
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="a in ausencias.data"
+              v-for="(a, index) in ausencias.data"
               :key="a.id"
               class="hover:bg-slate-50 transition"
             >
+              <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                {{ ((ausencias.current_page || 1) - 1) * (ausencias.per_page || 15) + index + 1 }}
+              </td>
               <td class="py-2.5 px-3">
                 <span class="font-medium text-slate-900 block">Dr(a). {{ a.medico?.persona?.nombre_completo }}</span>
                 <span class="text-[11px] text-slate-500 font-mono">Matrícula: {{ a.medico?.matricula_profesional }}</span>
@@ -103,7 +107,7 @@
             </tr>
 
             <tr v-if="ausencias.data.length === 0">
-              <td colspan="5" class="py-8 text-center text-xs text-slate-400">
+              <td colspan="6" class="py-8 text-center text-xs text-slate-400">
                 No se encontraron ausencias médicas registradas con los filtros seleccionados.
               </td>
             </tr>

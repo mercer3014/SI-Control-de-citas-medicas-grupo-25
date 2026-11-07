@@ -77,6 +77,7 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
+              <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
               <th class="py-2.5 px-3 whitespace-nowrap">Fecha y Hora</th>
               <th class="py-2.5 px-3">Usuario</th>
               <th class="py-2.5 px-3">Módulo</th>
@@ -87,13 +88,18 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
-            <template v-for="b in bitacoras.data" :key="b.id">
+            <template v-for="(b, index) in bitacoras.data" :key="b.id">
               <!-- Fila Principal (Click para desplegar) -->
               <tr 
                 @click="toggleRow(b.id)"
                 class="hover:bg-slate-50 transition cursor-pointer select-none"
                 :class="{ 'bg-slate-50/70': isExpanded(b.id) }"
               >
+                <!-- Enumeración -->
+                <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                  {{ ((bitacoras.current_page || 1) - 1) * (bitacoras.per_page || 20) + index + 1 }}
+                </td>
+
                 <!-- Fecha y Hora -->
                 <td class="py-2.5 px-3 text-slate-600 whitespace-nowrap font-mono text-[11px]">
                   {{ formatDateTime(b.fecha_hora) }}
@@ -156,7 +162,7 @@
 
               <!-- Fila Desplegable: Detalle en formato JSON -->
               <tr v-if="isExpanded(b.id)">
-                <td colspan="7" class="p-0 bg-slate-900 border-y border-slate-800">
+                <td colspan="8" class="p-0 bg-slate-900 border-y border-slate-800">
                   <div class="p-4 space-y-2">
                     <div class="flex items-center justify-between text-slate-400 text-[11px] pb-1 border-b border-slate-800">
                       <span class="font-mono flex items-center gap-1.5">
@@ -179,7 +185,7 @@
             </template>
 
             <tr v-if="bitacoras.data.length === 0">
-              <td colspan="7" class="py-8 text-center text-xs text-slate-500">
+              <td colspan="8" class="py-8 text-center text-xs text-slate-500">
                 No hay registros en la bitácora que coincidan con la búsqueda.
               </td>
             </tr>

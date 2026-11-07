@@ -77,13 +77,21 @@
 
         <!-- Matriz Agrupada de Permisos por Módulo Funcional -->
         <div class="p-5 space-y-6">
-          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200 gap-2">
             <div class="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
               Permisos del Sistema ({{ currentSelectedPermisos.length }} de {{ permisos.length }} activos)
             </div>
-            <span class="text-[11px] text-slate-500 font-medium">
-              Actualización dinámica en tiempo real
-            </span>
+            <div class="relative w-full sm:w-64">
+              <input
+                v-model="filtroPermiso"
+                type="text"
+                placeholder="Buscar permisos..."
+                class="w-full pl-8 pr-2.5 py-1 text-xs rounded border border-slate-300 focus:border-slate-600 outline-none"
+              />
+              <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
 
           <!-- Secciones de Permisos Agrupadas -->
@@ -198,9 +206,17 @@ const moduloCategorias = {
   ver_reportes: 'Reportes y Estadísticas',
 };
 
+const filtroPermiso = ref('');
+
 const groupedPermisos = computed(() => {
   const groups = {};
+  const term = filtroPermiso.value.toLowerCase().trim();
   (props.permisos || []).forEach(p => {
+    if (term) {
+      const match = (p.nombre && p.nombre.toLowerCase().includes(term)) ||
+                    (p.descripcion && p.descripcion.toLowerCase().includes(term));
+      if (!match) return;
+    }
     const mod = moduloCategorias[p.nombre] || 'Otros Permisos';
     if (!groups[mod]) {
       groups[mod] = [];

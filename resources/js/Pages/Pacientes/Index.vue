@@ -45,6 +45,7 @@
         <table class="table-clinica w-full">
           <thead>
             <tr>
+              <th class="text-center w-12 font-mono text-stone-500">#</th>
               <th>Paciente</th>
               <th>Contacto</th>
               <th>Grupo sanguíneo</th>
@@ -54,7 +55,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="p in pacientes.data" :key="p.id">
+            <tr v-for="(p, index) in pacientes.data" :key="p.id">
+              <td class="text-center font-mono text-[11px] text-stone-400 font-semibold">
+                {{ ((pacientes.current_page || 1) - 1) * (pacientes.per_page || 15) + index + 1 }}
+              </td>
               <td>
                 <div class="flex items-center gap-3">
                   <Avatar :name="p.persona?.nombre_completo || 'P'" size="sm" />

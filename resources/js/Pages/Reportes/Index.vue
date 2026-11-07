@@ -150,6 +150,7 @@
             <table class="w-full text-left text-xs border-collapse">
               <thead>
                 <tr class="border-b border-slate-100 text-slate-500 font-semibold text-[11px]">
+                  <th class="py-2 px-3 text-center w-10 text-slate-400 font-mono">#</th>
                   <th class="py-2 px-3">Médico</th>
                   <th class="py-2 px-3 text-center">Citas</th>
                   <th class="py-2 px-3 text-center">Atendidas</th>
@@ -157,7 +158,10 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                <tr v-for="rm in rendimientoMedicos" :key="rm.medico_id" class="hover:bg-slate-50/50">
+                <tr v-for="(rm, index) in rendimientoMedicos" :key="rm.medico_id" class="hover:bg-slate-50/50">
+                  <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                    {{ index + 1 }}
+                  </td>
                   <td class="py-2.5 px-3">
                     <span class="font-medium text-slate-900 block">{{ rm.nombre }}</span>
                     <span class="text-[10px] font-mono text-slate-400">Mat: {{ rm.matricula }}</span>
@@ -174,7 +178,7 @@
                 </tr>
 
                 <tr v-if="rendimientoMedicos.length === 0">
-                  <td colspan="4" class="py-6 text-center text-slate-400 text-xs">
+                  <td colspan="5" class="py-6 text-center text-slate-400 text-xs">
                     Sin registros médicos en este rango de fechas.
                   </td>
                 </tr>
@@ -194,12 +198,17 @@
 
           <div class="p-4 space-y-3">
             <div
-              v-for="esp in demandaEspecialidades"
+              v-for="(esp, index) in demandaEspecialidades"
               :key="esp.especialidad_id"
               class="space-y-1"
             >
               <div class="flex items-center justify-between text-xs">
-                <span class="font-semibold text-slate-800">{{ esp.nombre }}</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-5 h-5 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold flex items-center justify-center">
+                    #{{ index + 1 }}
+                  </span>
+                  <span class="font-semibold text-slate-800">{{ esp.nombre }}</span>
+                </div>
                 <span class="font-mono text-slate-600 text-[11px]">
                   {{ esp.total_citas }} citas ({{ esp.porcentaje }}%)
                 </span>

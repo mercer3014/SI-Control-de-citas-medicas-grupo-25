@@ -60,6 +60,7 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
+              <th class="py-2.5 px-3 text-center w-12 text-slate-500 font-mono">#</th>
               <th class="py-2.5 px-3">Persona / CI</th>
               <th class="py-2.5 px-3">Usuario</th>
               <th class="py-2.5 px-3">Correo</th>
@@ -70,10 +71,13 @@
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr 
-              v-for="u in usuarios.data" 
+              v-for="(u, index) in usuarios.data" 
               :key="u.id"
               class="hover:bg-slate-50 transition"
             >
+              <td class="py-2.5 px-3 text-center font-mono text-[11px] text-slate-400 font-semibold">
+                {{ ((usuarios.current_page || 1) - 1) * (usuarios.per_page || 15) + index + 1 }}
+              </td>
               <td class="py-2.5 px-3">
                 <span class="font-medium text-slate-900 block">{{ u.persona?.nombre_completo }}</span>
                 <span class="text-[11px] text-slate-500 font-mono">CI: {{ u.persona?.ci }} &bull; {{ u.persona?.telefono || 'Sin teléfono' }}</span>
@@ -157,7 +161,7 @@
             </tr>
 
             <tr v-if="usuarios.data.length === 0">
-              <td colspan="6" class="py-8 text-center text-xs text-slate-500">
+              <td colspan="7" class="py-8 text-center text-xs text-slate-500">
                 No se encontraron usuarios registrados con los criterios seleccionados.
               </td>
             </tr>
