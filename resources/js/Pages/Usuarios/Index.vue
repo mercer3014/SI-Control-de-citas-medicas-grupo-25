@@ -55,8 +55,91 @@
         </button>
       </div>
 
-      <!-- Tabla de Usuarios con Iconos de Acción -->
-      <div class="bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
+      <!-- Vista Móvil: Tarjetas Responsivas con Toggle y Popover -->
+      <div class="block md:hidden space-y-3">
+        <div
+          v-for="(u, index) in usuarios.data"
+          :key="u.id"
+          class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-4 space-y-3"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                #{{ ((usuarios.current_page || 1) - 1) * (usuarios.per_page || 15) + index + 1 }}
+              </span>
+              <div class="min-w-0">
+                <h4 class="font-bold text-slate-900 text-xs truncate">{{ u.persona?.nombre_completo }}</h4>
+                <span class="text-[11px] font-mono text-slate-500">@{{ u.username }}</span>
+              </div>
+            </div>
+
+            <!-- Popover de Acciones (···) -->
+            <ActionPopover>
+              <template #default="{ close }">
+                <ActionPopoverItem
+                  icon="pencil"
+                  label="Editar usuario"
+                  @click="openEditModal(u); close()"
+                />
+                <ActionPopoverItem
+                  v-if="u.id !== $page.props.auth?.user?.id"
+                  :icon="u.estado ? 'ban' : 'check'"
+                  :label="u.estado ? 'Desactivar cuenta' : 'Activar cuenta'"
+                  @click="confirmToggleState(u); close()"
+                />
+                <div v-if="u.id !== $page.props.auth?.user?.id" class="border-t border-slate-100 my-0.5"></div>
+                <ActionPopoverItem
+                  v-if="u.id !== $page.props.auth?.user?.id"
+                  icon="trash"
+                  label="Eliminar usuario"
+                  danger
+                  @click="confirmDelete(u); close()"
+                />
+              </template>
+            </ActionPopover>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Documento / CI:</span>
+              <span class="font-mono font-medium text-slate-700">{{ u.persona?.ci }}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">Rol Asignado:</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-700">
+                {{ u.rol?.nombre }}
+              </span>
+            </div>
+            <div class="col-span-2">
+              <span class="text-slate-400 block text-[10px]">Correo Electrónico:</span>
+              <span class="text-slate-600 truncate block">{{ u.email }}</span>
+            </div>
+          </div>
+
+          <!-- Toggle de Estado Móvil -->
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+            <span class="text-slate-500 text-[11px]">Estado de la cuenta:</span>
+            <div class="flex items-center gap-2">
+              <ToggleSwitch
+                :model-value="u.estado"
+                :disabled="u.id === $page.props.auth?.user?.id"
+                size="sm"
+                @change="confirmToggleState(u)"
+              />
+              <span class="text-[11px] font-semibold" :class="u.estado ? 'text-slate-800' : 'text-slate-400'">
+                {{ u.estado ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="usuarios.data.length === 0" class="bg-white p-8 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
+          No se encontraron usuarios registrados con los criterios seleccionados.
+        </div>
+      </div>
+
+      <!-- Vista Escritorio: Tabla de Usuarios con Toggle y Popover -->
+      <div class="hidden md:block bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
@@ -94,69 +177,42 @@
                 </span>
               </td>
               <td class="py-2.5 px-3 text-center">
-                <span class="inline-flex items-center gap-1.5 text-xs text-slate-700">
-                  <span class="w-2 h-2 rounded-full" :class="u.estado ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                  <span>{{ u.estado ? 'Activo' : 'Inactivo' }}</span>
-                </span>
-              </td>
-              <td class="py-2.5 px-3 text-right">
-                <div class="inline-flex items-center gap-1">
-                  <!-- Editar -->
-                  <button 
-                    @click="openEditModal(u)" 
-                    class="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded transition cursor-pointer"
-                    title="Editar usuario"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-
-                  <!-- Alternar Estado (Activar/Desactivar) -->
-                  <button 
-                    v-if="u.id !== $page.props.auth?.user?.id"
-                    @click="confirmToggleState(u)" 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white transition cursor-pointer hover:bg-slate-100 text-slate-500 hover:text-slate-800"
-                    :title="u.estado ? 'Desactivar usuario' : 'Activar usuario'"
-                  >
-                    <svg v-if="u.estado" class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    <svg v-else class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                  <span 
-                    v-else 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed" 
-                    title="Tu propia cuenta activa"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </span>
-
-                  <!-- Eliminar Usuario (Baja Lógica) -->
-                  <button 
-                    v-if="u.id !== $page.props.auth?.user?.id"
-                    @click="confirmDelete(u)" 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                    title="Eliminar usuario (Baja lógica)"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                  <span 
-                    v-else 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed" 
-                    title="No puedes eliminar tu propia cuenta"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
+                <div class="flex items-center justify-center gap-2">
+                  <ToggleSwitch
+                    :model-value="u.estado"
+                    :disabled="u.id === $page.props.auth?.user?.id"
+                    size="sm"
+                    @change="confirmToggleState(u)"
+                  />
+                  <span class="text-[11px] font-medium" :class="u.estado ? 'text-slate-800' : 'text-slate-400'">
+                    {{ u.estado ? 'Activo' : 'Inactivo' }}
                   </span>
                 </div>
+              </td>
+              <td class="py-2.5 px-3 text-right">
+                <ActionPopover>
+                  <template #default="{ close }">
+                    <ActionPopoverItem
+                      icon="pencil"
+                      label="Editar usuario"
+                      @click="openEditModal(u); close()"
+                    />
+                    <ActionPopoverItem
+                      v-if="u.id !== $page.props.auth?.user?.id"
+                      :icon="u.estado ? 'ban' : 'check'"
+                      :label="u.estado ? 'Desactivar cuenta' : 'Activar cuenta'"
+                      @click="confirmToggleState(u); close()"
+                    />
+                    <div v-if="u.id !== $page.props.auth?.user?.id" class="border-t border-slate-100 my-0.5"></div>
+                    <ActionPopoverItem
+                      v-if="u.id !== $page.props.auth?.user?.id"
+                      icon="trash"
+                      label="Eliminar usuario"
+                      danger
+                      @click="confirmDelete(u); close()"
+                    />
+                  </template>
+                </ActionPopover>
               </td>
             </tr>
 
@@ -324,6 +380,9 @@ import { ref } from 'vue';
 import { router, useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DialogModal from '@/Components/DialogModal.vue';
+import ToggleSwitch from '@/Components/ToggleSwitch.vue';
+import ActionPopover from '@/Components/ActionPopover.vue';
+import ActionPopoverItem from '@/Components/ActionPopoverItem.vue';
 
 const props = defineProps({
   usuarios: Object,

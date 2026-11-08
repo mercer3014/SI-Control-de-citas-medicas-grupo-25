@@ -72,8 +72,88 @@
         </button>
       </div>
 
-      <!-- Tabla de Auditoría con Registros Desplegables (JSON) -->
-      <div class="bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
+      <!-- Vista Móvil: Tarjetas de Bitácora con Despliegue JSON -->
+      <div class="block md:hidden space-y-3">
+        <div
+          v-for="(b, index) in bitacoras.data"
+          :key="b.id"
+          class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden"
+        >
+          <div
+            @click="toggleRow(b.id)"
+            class="p-3.5 space-y-2 cursor-pointer hover:bg-slate-50 transition"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                  #{{ ((bitacoras.current_page || 1) - 1) * (bitacoras.per_page || 20) + index + 1 }}
+                </span>
+                <div class="min-w-0">
+                  <span class="font-medium text-slate-900 text-xs block truncate">
+                    {{ b.usuario?.persona?.nombre_completo || b.usuario?.username || 'Sistema' }}
+                  </span>
+                  <span class="text-[10px] text-slate-500 font-mono">
+                    {{ formatDateTime(b.fecha_hora) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  {{ b.modulo }}
+                </span>
+                <svg
+                  class="w-4 h-4 text-slate-400 transition-transform duration-200"
+                  :class="{ 'rotate-180': isExpanded(b.id) }"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-slate-700 bg-slate-50/70 p-2 rounded-lg border border-slate-100">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-mono text-[10px] font-semibold text-slate-800 px-1.5 py-0.2 rounded bg-white border border-slate-200">
+                  {{ b.accion }}
+                </span>
+                <span class="font-mono text-[10px] text-slate-400">
+                  IP: {{ b.ip_origen || '127.0.0.1' }}
+                </span>
+              </div>
+              <p class="text-slate-800 leading-snug">{{ b.detalle || '-' }}</p>
+            </div>
+          </div>
+
+          <!-- Despliegue JSON Móvil -->
+          <div v-if="isExpanded(b.id)" class="p-3 bg-slate-900 border-t border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-slate-400 text-[10px] pb-1 border-b border-slate-800">
+              <span class="font-mono flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Registro #{{ b.id }}
+              </span>
+              <button
+                type="button"
+                @click.stop="copyJson(b)"
+                class="text-[10px] text-slate-300 hover:text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+              >
+                {{ copiedId === b.id ? '¡Copiado!' : 'Copiar JSON' }}
+              </button>
+            </div>
+            <pre class="text-emerald-400 font-mono text-[10px] overflow-x-auto leading-relaxed p-2 bg-slate-950/70 rounded">{{ formatJson(b) }}</pre>
+          </div>
+        </div>
+
+        <div v-if="bitacoras.data.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-500">
+          No hay registros en la bitácora que coincidan con la búsqueda.
+        </div>
+      </div>
+
+      <!-- Tabla de Auditoría con Registros Desplegables (JSON) Escritorio -->
+      <div class="hidden md:block bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">

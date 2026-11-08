@@ -79,8 +79,98 @@
         </button>
       </div>
 
-      <!-- Tabla de Citas Médicas -->
-      <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
+      <!-- Vista Móvil: Tarjetas de Citas -->
+      <div class="block md:hidden space-y-3">
+        <div
+          v-for="(c, index) in citas.data"
+          :key="c.id"
+          class="bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-xs space-y-2.5"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                #{{ ((citas.current_page || 1) - 1) * (citas.per_page || 15) + index + 1 }}
+              </span>
+              <div class="min-w-0">
+                <span class="font-mono font-bold text-slate-900 text-xs block">
+                  {{ c.codigo_reserva }}
+                </span>
+                <span class="text-[11px] font-mono text-slate-500">
+                  {{ formatDate(c.fecha) }} &bull; {{ formatHour(c.hora_inicio) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Popover de Acciones (···) -->
+            <ActionPopover>
+              <template #default="{ close }">
+                <template v-if="c.estado_id === 1 || c.estado_id === 2">
+                  <ActionPopoverItem
+                    icon="clock"
+                    label="Reprogramar cita"
+                    @click="openReprogramarModal(c); close()"
+                  />
+                  <div class="border-t border-slate-100 my-0.5"></div>
+                  <ActionPopoverItem
+                    icon="ban"
+                    label="Cancelar cita"
+                    danger
+                    @click="openCancelarModal(c); close()"
+                  />
+                </template>
+                <template v-else-if="c.estado_id === 3">
+                  <ActionPopoverItem
+                    :href="`/historial-citas?buscar=${c.codigo_reserva}`"
+                    icon="history"
+                    label="Ver en historial clínico"
+                    @click="close"
+                  />
+                </template>
+                <template v-else>
+                  <div class="px-3 py-2 text-[11px] text-slate-400 italic">
+                    Sin acciones disponibles
+                  </div>
+                </template>
+              </template>
+            </ActionPopover>
+          </div>
+
+          <!-- Paciente y Médico -->
+          <div class="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Paciente:</span>
+              <span class="font-bold text-slate-900 block truncate">{{ c.paciente?.persona?.nombre_completo }}</span>
+              <span class="text-[10px] font-mono text-slate-500">CI: {{ c.paciente?.persona?.ci }} &bull; {{ c.paciente?.persona?.telefono || 'Sin tel.' }}</span>
+            </div>
+            <div class="pt-1 border-t border-slate-200/50">
+              <span class="text-slate-400 block text-[10px]">Médico y Especialidad:</span>
+              <span class="font-medium text-slate-800 block truncate">Dr(a). {{ c.medico_especialidad?.medico?.persona?.nombre_completo }}</span>
+              <span class="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60">
+                {{ c.medico_especialidad?.especialidad?.nombre }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Pie: Estado de la Cita -->
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+            <span class="text-slate-500 text-[11px]">Estado:</span>
+            <span
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border"
+              :class="badgeClass(c.estado_id)"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="dotClass(c.estado_id)"></span>
+              {{ c.estado?.nombre }}
+            </span>
+          </div>
+        </div>
+
+        <div v-if="citas.data.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-400">
+          No se encontraron citas médicas con los filtros seleccionados.
+        </div>
+      </div>
+
+      <!-- Vista Escritorio: Tabla de Citas Médicas -->
+      <div class="hidden md:block bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
@@ -90,7 +180,7 @@
               <th class="py-2.5 px-3">Médico / Especialidad</th>
               <th class="py-2.5 px-3 whitespace-nowrap">Fecha y Hora</th>
               <th class="py-2.5 px-3 text-center">Estado</th>
-              <th class="py-2.5 px-3 text-right">Acciones</th>
+              <th class="py-2.5 px-3 text-right w-16">Acción</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -142,49 +232,39 @@
                 </span>
               </td>
 
-              <!-- Acciones Contextuales -->
+              <!-- Acciones Contextuales (Popover) -->
               <td class="py-2.5 px-3 text-right">
-                <div class="inline-flex items-center gap-1">
-                  <!-- Reprogramar (si está Programada o Confirmada) -->
-                  <button
-                    v-if="c.estado_id === 1 || c.estado_id === 2"
-                    type="button"
-                    @click="openReprogramarModal(c)"
-                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
-                    title="Reprogramar cita"
-                  >
-                    <AppIcon name="clock" class="w-3.5 h-3.5" />
-                  </button>
-
-                  <!-- Cancelar (si está Programada o Confirmada) -->
-                  <button
-                    v-if="c.estado_id === 1 || c.estado_id === 2"
-                    type="button"
-                    @click="openCancelarModal(c)"
-                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                    title="Cancelar cita"
-                  >
-                    <AppIcon name="ban" class="w-3.5 h-3.5" />
-                  </button>
-
-                  <!-- Ver informe si ya fue atendida -->
-                  <span
-                    v-if="c.estado_id === 3"
-                    class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
-                    title="Consulta atendida"
-                  >
-                    Atendida
-                  </span>
-
-                  <!-- Motivo de cancelación si fue cancelada -->
-                  <span
-                    v-if="c.estado_id === 4"
-                    class="text-[10px] text-slate-400 italic max-w-[120px] truncate"
-                    :title="c.motivo_cancelacion"
-                  >
-                    {{ c.motivo_cancelacion || 'Cancelada' }}
-                  </span>
-                </div>
+                <ActionPopover>
+                  <template #default="{ close }">
+                    <template v-if="c.estado_id === 1 || c.estado_id === 2">
+                      <ActionPopoverItem
+                        icon="clock"
+                        label="Reprogramar cita"
+                        @click="openReprogramarModal(c); close()"
+                      />
+                      <div class="border-t border-slate-100 my-0.5"></div>
+                      <ActionPopoverItem
+                        icon="ban"
+                        label="Cancelar cita"
+                        danger
+                        @click="openCancelarModal(c); close()"
+                      />
+                    </template>
+                    <template v-else-if="c.estado_id === 3">
+                      <ActionPopoverItem
+                        :href="`/historial-citas?buscar=${c.codigo_reserva}`"
+                        icon="history"
+                        label="Ver en historial clínico"
+                        @click="close"
+                      />
+                    </template>
+                    <template v-else>
+                      <div class="px-3 py-2 text-[11px] text-slate-400 italic">
+                        {{ c.motivo_cancelacion || 'Cancelada' }}
+                      </div>
+                    </template>
+                  </template>
+                </ActionPopover>
               </td>
             </tr>
 
@@ -240,6 +320,8 @@ import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import ActionPopover from '@/Components/ActionPopover.vue';
+import ActionPopoverItem from '@/Components/ActionPopoverItem.vue';
 import ModalProgramarCita from './Partials/ModalProgramarCita.vue';
 import ModalReprogramarCita from './Partials/ModalReprogramarCita.vue';
 import ModalCancelarCita from './Partials/ModalCancelarCita.vue';

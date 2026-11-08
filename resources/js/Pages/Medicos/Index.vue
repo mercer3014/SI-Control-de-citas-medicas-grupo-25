@@ -55,8 +55,104 @@
         </button>
       </div>
 
-      <!-- Tabla de Médicos -->
-      <div class="bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
+      <!-- Vista Móvil: Tarjetas compactas con Toggle y Popover -->
+      <div class="block md:hidden space-y-3">
+        <div 
+          v-for="(m, index) in medicos.data" 
+          :key="m.id"
+          class="bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-xs space-y-2.5"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                #{{ ((medicos.current_page || 1) - 1) * (medicos.per_page || 15) + index + 1 }}
+              </span>
+              <div class="min-w-0">
+                <Link :href="`/medicos/${m.id}`" class="block truncate font-bold text-slate-900 text-xs hover:text-blue-700 transition">
+                  Dr(a). {{ m.persona?.nombre_completo }}
+                </Link>
+                <span class="text-[11px] font-mono text-blue-700 font-medium">
+                  Mat: {{ m.matricula_profesional }} &bull; CI: {{ m.persona?.ci }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Popover de Acciones (···) -->
+            <ActionPopover>
+              <template #default="{ close }">
+                <ActionPopoverItem
+                  :href="`/medicos/${m.id}`"
+                  icon="eye"
+                  label="Ver perfil médico"
+                  @click="close"
+                />
+                <ActionPopoverItem
+                  icon="pencil"
+                  label="Editar médico"
+                  @click="openEditModal(m); close()"
+                />
+                <ActionPopoverItem
+                  :icon="m.estado ? 'ban' : 'check'"
+                  :label="m.estado ? 'Desactivar médico' : 'Activar médico'"
+                  @click="confirmToggle(m); close()"
+                />
+                <div class="border-t border-slate-100 my-0.5"></div>
+                <ActionPopoverItem
+                  icon="trash"
+                  label="Eliminar médico"
+                  danger
+                  @click="confirmDelete(m); close()"
+                />
+              </template>
+            </ActionPopover>
+          </div>
+
+          <!-- Especialidades Asignadas -->
+          <div class="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Especialidades:</span>
+              <div class="flex flex-wrap gap-1 mt-0.5">
+                <span 
+                  v-for="esp in m.especialidades" 
+                  :key="esp.id"
+                  class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white text-slate-700 border border-slate-200"
+                >
+                  {{ esp.nombre }} (Bs. {{ esp.pivot.precio_consulta }})
+                </span>
+                <span v-if="m.especialidades.length === 0" class="text-slate-400 italic text-[10px]">
+                  Sin especialidades asignadas
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-200/50">
+              <span class="text-slate-400 text-[10px]">Contacto:</span>
+              <span class="font-mono text-slate-700 text-[11px]">{{ m.persona?.telefono || 'Sin teléfono' }}</span>
+            </div>
+          </div>
+
+          <!-- Toggle de Estado Móvil -->
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+            <span class="text-slate-500 text-[11px]">Estado del médico:</span>
+            <div class="flex items-center gap-2">
+              <ToggleSwitch
+                :model-value="Boolean(m.estado)"
+                size="sm"
+                @change="confirmToggle(m)"
+              />
+              <span class="text-[11px] font-semibold" :class="m.estado ? 'text-slate-800' : 'text-slate-400'">
+                {{ m.estado ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="medicos.data.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-500">
+          No se encontraron médicos registrados.
+        </div>
+      </div>
+
+      <!-- Vista Escritorio: Tabla con Toggle y Popover -->
+      <div class="hidden md:block bg-white rounded border border-slate-200 shadow-xs overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
@@ -65,8 +161,8 @@
               <th class="py-2.5 px-3">Documento (CI)</th>
               <th class="py-2.5 px-3">Especialidades Asignadas</th>
               <th class="py-2.5 px-3">Contacto</th>
-              <th class="py-2.5 px-3 text-center">Estado</th>
-              <th class="py-2.5 px-3 text-right">Acciones</th>
+              <th class="py-2.5 px-3 text-center w-28">Estado</th>
+              <th class="py-2.5 px-3 text-right w-16">Acción</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -104,58 +200,45 @@
                 <span class="text-[11px] text-slate-400 block truncate max-w-xs">{{ m.persona?.direccion || 'Sin dirección' }}</span>
               </td>
               <td class="py-2.5 px-3 text-center">
-                <span class="inline-flex items-center gap-1.5 text-xs text-slate-700">
-                  <span class="w-2 h-2 rounded-full" :class="m.estado ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                  <span>{{ m.estado ? 'Activo' : 'Inactivo' }}</span>
-                </span>
+                <div class="flex items-center justify-center gap-1.5">
+                  <ToggleSwitch
+                    :model-value="Boolean(m.estado)"
+                    size="sm"
+                    @change="confirmToggle(m)"
+                  />
+                  <span class="text-[11px] font-medium" :class="m.estado ? 'text-slate-800' : 'text-slate-400'">
+                    {{ m.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
               </td>
               <td class="py-2.5 px-3 text-right">
-                <div class="inline-flex items-center gap-1">
-                  <Link 
-                    :href="`/medicos/${m.id}`"
-                    class="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded transition"
-                    title="Ver perfil completo"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </Link>
-                  <button 
-                    @click="openEditModal(m)" 
-                    class="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded transition cursor-pointer"
-                    title="Editar médico"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                  <!-- Desactivar / Activar -->
-                  <button 
-                    @click="confirmToggle(m)" 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white transition cursor-pointer hover:bg-slate-100"
-                    :class="m.estado ? 'text-slate-500 hover:text-amber-600' : 'text-slate-500 hover:text-emerald-600'"
-                    :title="m.estado ? 'Desactivar médico' : 'Activar médico'"
-                  >
-                    <svg v-if="m.estado" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    <svg v-else class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-
-                  <!-- Eliminar -->
-                  <button 
-                    @click="confirmDelete(m)" 
-                    class="w-7 h-7 flex items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                    title="Eliminar médico"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+                <ActionPopover>
+                  <template #default="{ close }">
+                    <ActionPopoverItem
+                      :href="`/medicos/${m.id}`"
+                      icon="eye"
+                      label="Ver perfil médico"
+                      @click="close"
+                    />
+                    <ActionPopoverItem
+                      icon="pencil"
+                      label="Editar médico"
+                      @click="openEditModal(m); close()"
+                    />
+                    <ActionPopoverItem
+                      :icon="m.estado ? 'ban' : 'check'"
+                      :label="m.estado ? 'Desactivar médico' : 'Activar médico'"
+                      @click="confirmToggle(m); close()"
+                    />
+                    <div class="border-t border-slate-100 my-0.5"></div>
+                    <ActionPopoverItem
+                      icon="trash"
+                      label="Eliminar médico"
+                      danger
+                      @click="confirmDelete(m); close()"
+                    />
+                  </template>
+                </ActionPopover>
               </td>
             </tr>
 
@@ -330,6 +413,9 @@ import { ref } from 'vue';
 import { router, useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DialogModal from '@/Components/DialogModal.vue';
+import ToggleSwitch from '@/Components/ToggleSwitch.vue';
+import ActionPopover from '@/Components/ActionPopover.vue';
+import ActionPopoverItem from '@/Components/ActionPopoverItem.vue';
 
 const props = defineProps({
   medicos: Object,

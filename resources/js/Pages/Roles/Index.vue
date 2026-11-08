@@ -127,25 +127,27 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              <label
+              <div
                 v-for="p in moduloPermisos"
                 :key="p.id"
-                class="flex items-start gap-2.5 p-2.5 rounded border transition cursor-pointer select-none"
+                @click="togglePermission(p.id)"
+                class="flex items-start justify-between gap-3 p-3 rounded-xl border transition cursor-pointer select-none"
                 :class="isPermissionChecked(p.id)
-                  ? 'bg-slate-50 border-slate-400 shadow-xs'
+                  ? 'bg-blue-50/40 border-blue-200/80 shadow-xs'
                   : 'bg-white border-slate-200 hover:bg-slate-50/60'"
               >
-                <input
-                  type="checkbox"
-                  :checked="isPermissionChecked(p.id)"
-                  @change="togglePermission(p.id)"
-                  class="mt-0.5 rounded text-slate-900 focus:ring-slate-600 cursor-pointer"
-                />
-                <div class="leading-tight">
+                <div class="leading-tight min-w-0 pr-1">
                   <span class="text-xs font-semibold text-slate-800 block">{{ p.nombre }}</span>
                   <span class="text-[11px] text-slate-500 block mt-0.5 leading-snug">{{ p.descripcion }}</span>
                 </div>
-              </label>
+                <div class="shrink-0 pt-0.5">
+                  <ToggleSwitch
+                    :model-value="isPermissionChecked(p.id)"
+                    size="sm"
+                    @change="togglePermission(p.id)"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -158,6 +160,7 @@
 import { ref, computed, reactive, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import ToggleSwitch from '@/Components/ToggleSwitch.vue';
 
 const props = defineProps({
   roles: Array,

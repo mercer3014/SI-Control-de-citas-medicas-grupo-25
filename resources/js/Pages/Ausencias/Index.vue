@@ -42,8 +42,85 @@
         </button>
       </div>
 
-      <!-- Tabla de Ausencias -->
-      <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
+      <!-- Vista Móvil: Tarjetas de Ausencias -->
+      <div class="block md:hidden space-y-3">
+        <div
+          v-for="(a, index) in ausencias.data"
+          :key="a.id"
+          class="bg-white rounded-xl border border-slate-200/80 p-3.5 shadow-xs space-y-2.5"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                #{{ ((ausencias.current_page || 1) - 1) * (ausencias.per_page || 15) + index + 1 }}
+              </span>
+              <div class="min-w-0">
+                <span class="font-medium text-slate-900 text-xs block truncate">
+                  Dr(a). {{ a.medico?.persona?.nombre_completo }}
+                </span>
+                <span class="text-[11px] font-mono text-slate-500">
+                  Mat: {{ a.medico?.matricula_profesional }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Popover de Acciones (···) -->
+            <ActionPopover>
+              <template #default="{ close }">
+                <ActionPopoverItem
+                  icon="trash"
+                  label="Cancelar / Eliminar ausencia"
+                  danger
+                  @click="confirmDelete(a); close()"
+                />
+              </template>
+            </ActionPopover>
+          </div>
+
+          <!-- Período y Motivo -->
+          <div class="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Período de Ausencia:</span>
+              <span class="font-mono font-semibold text-slate-800 text-xs block">
+                {{ formatDate(a.fecha_inicio) }} &rarr; {{ formatDate(a.fecha_fin) }}
+              </span>
+              <span class="text-[10px] text-slate-500">
+                {{ calcularDias(a.fecha_inicio, a.fecha_fin) }} día(s)
+              </span>
+            </div>
+
+            <div class="pt-1 border-t border-slate-200/50">
+              <span class="text-slate-400 block text-[10px]">Motivo:</span>
+              <span class="text-slate-700 text-[11px]">{{ a.motivo }}</span>
+            </div>
+          </div>
+
+          <!-- Pie: Estado de la Ausencia -->
+          <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+            <span class="text-slate-500 text-[11px]">Vigencia:</span>
+            <span
+              v-if="esVigente(a.fecha_fin)"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              Vigente
+            </span>
+            <span
+              v-else
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+            >
+              Concluida
+            </span>
+          </div>
+        </div>
+
+        <div v-if="ausencias.data.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-400">
+          No se encontraron ausencias médicas registradas con los filtros seleccionados.
+        </div>
+      </div>
+
+      <!-- Vista Escritorio: Tabla de Ausencias -->
+      <div class="hidden md:block bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[11px] tracking-wider">
@@ -52,7 +129,7 @@
               <th class="py-2.5 px-3">Período de Ausencia</th>
               <th class="py-2.5 px-3">Motivo / Justificación</th>
               <th class="py-2.5 px-3 text-center">Estado</th>
-              <th class="py-2.5 px-3 text-right">Acciones</th>
+              <th class="py-2.5 px-3 text-right w-16">Acción</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -95,14 +172,16 @@
                 </span>
               </td>
               <td class="py-2.5 px-3 text-right">
-                <button
-                  type="button"
-                  @click="confirmDelete(a)"
-                  class="w-7 h-7 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                  title="Cancelar / Eliminar ausencia"
-                >
-                  <AppIcon name="trash" class="w-3.5 h-3.5" />
-                </button>
+                <ActionPopover>
+                  <template #default="{ close }">
+                    <ActionPopoverItem
+                      icon="trash"
+                      label="Cancelar ausencia"
+                      danger
+                      @click="confirmDelete(a); close()"
+                    />
+                  </template>
+                </ActionPopover>
               </td>
             </tr>
 
@@ -232,6 +311,8 @@ import { Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import DialogModal from '@/Components/DialogModal.vue';
+import ActionPopover from '@/Components/ActionPopover.vue';
+import ActionPopoverItem from '@/Components/ActionPopoverItem.vue';
 
 const props = defineProps({
   ausencias: Object,

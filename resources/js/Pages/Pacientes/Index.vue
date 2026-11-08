@@ -39,8 +39,109 @@
       </select>
     </FilterBar>
 
-    <!-- Tabla -->
-    <div class="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-card animate-fade-up">
+    <!-- Vista Móvil: Tarjetas Responsivas con Toggle y Popover -->
+    <div class="block md:hidden space-y-3">
+      <div
+        v-for="(p, index) in pacientes.data"
+        :key="p.id"
+        class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-4 space-y-3"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="w-6 h-6 rounded-md bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+              #{{ ((pacientes.current_page || 1) - 1) * (pacientes.per_page || 15) + index + 1 }}
+            </span>
+            <Avatar :name="p.persona?.nombre_completo || 'P'" size="sm" class="shrink-0" />
+            <div class="min-w-0">
+              <Link :href="`/pacientes/${p.id}`" class="block truncate font-bold text-slate-900 text-xs hover:text-blue-700 transition">
+                {{ p.persona?.nombre_completo }}
+              </Link>
+              <span class="text-[11px] font-mono text-slate-500">
+                CI: {{ p.persona?.ci }} &bull; {{ generoLabel(p.persona?.genero) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Popover de Acciones (···) -->
+          <ActionPopover>
+            <template #default="{ close }">
+              <ActionPopoverItem
+                :href="`/pacientes/${p.id}`"
+                icon="eye"
+                label="Ver ficha clínica"
+                @click="close"
+              />
+              <ActionPopoverItem
+                icon="pencil"
+                label="Editar paciente"
+                @click="openEditModal(p); close()"
+              />
+              <ActionPopoverItem
+                :icon="p.estado ? 'ban' : 'check'"
+                :label="p.estado ? 'Desactivar paciente' : 'Activar paciente'"
+                @click="confirmToggle(p); close()"
+              />
+              <div class="border-t border-slate-100 my-0.5"></div>
+              <ActionPopoverItem
+                icon="trash"
+                label="Eliminar paciente"
+                danger
+                @click="confirmDelete(p); close()"
+              />
+            </template>
+          </ActionPopover>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+          <div>
+            <span class="text-slate-400 block text-[10px]">Grupo Sanguíneo:</span>
+            <span v-if="p.tipo_sangre" class="inline-flex items-center gap-1 font-mono font-bold text-rose-700">
+              <AppIcon name="blood" class="h-3 w-3" />{{ p.tipo_sangre }}
+            </span>
+            <span v-else class="text-slate-400 italic">No registrado</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px]">Teléfono:</span>
+            <span class="font-mono text-slate-700">{{ p.persona?.telefono || 'Sin teléfono' }}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-slate-400 block text-[10px]">Contacto Emergencia:</span>
+            <span class="text-slate-700 font-medium">{{ p.contacto_emergencia_nombre || 'No asignado' }}</span>
+            <span v-if="p.contacto_emergencia_telefono" class="text-slate-400 font-mono ml-1">({{ p.contacto_emergencia_telefono }})</span>
+          </div>
+        </div>
+
+        <!-- Toggle de Estado Móvil -->
+        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+          <span class="text-slate-500 text-[11px]">Estado del paciente:</span>
+          <div class="flex items-center gap-2">
+            <ToggleSwitch
+              :model-value="p.estado"
+              size="sm"
+              @change="confirmToggle(p)"
+            />
+            <span class="text-[11px] font-semibold" :class="p.estado ? 'text-slate-800' : 'text-slate-400'">
+              {{ p.estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <EmptyState
+        v-if="pacientes.data.length === 0"
+        icon="users"
+        title="No se encontraron pacientes"
+        message="Prueba ajustando los filtros de búsqueda o registra un nuevo paciente."
+      >
+        <button type="button" @click="openCreateModal" class="btn-clinica bg-brand-600 text-white hover:bg-brand-700">
+          <AppIcon name="plus" class="h-4 w-4" :stroke-width="2.2" />
+          Registrar Paciente
+        </button>
+      </EmptyState>
+    </div>
+
+    <!-- Vista Escritorio: Tabla -->
+    <div class="hidden md:block overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-card animate-fade-up">
       <div class="overflow-x-auto">
         <table class="table-clinica w-full">
           <thead>
@@ -90,47 +191,45 @@
                 <span v-if="p.contacto_emergencia_telefono" class="text-[12px] text-stone-400">{{ p.contacto_emergencia_telefono }}</span>
               </td>
               <td class="text-center">
-                <StatusBadge
-                  :label="p.estado ? 'Activo' : 'Inactivo'"
-                  :variant="p.estado ? 'success' : 'neutral'"
-                  :pulse="p.estado"
-                />
+                <div class="flex items-center justify-center gap-2">
+                  <ToggleSwitch
+                    :model-value="p.estado"
+                    size="sm"
+                    @change="confirmToggle(p)"
+                  />
+                  <span class="text-[11px] font-medium" :class="p.estado ? 'text-slate-800' : 'text-slate-400'">
+                    {{ p.estado ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
               </td>
               <td class="text-right">
-                <div class="inline-flex items-center gap-1">
-                  <Link
-                    :href="`/pacientes/${p.id}`"
-                    class="rounded-lg p-2 text-stone-400 transition hover:bg-brand-50 hover:text-brand-600"
-                    title="Ver ficha clínica"
-                  >
-                    <AppIcon name="eye" class="h-[18px] w-[18px]" />
-                  </Link>
-                  <button
-                    type="button"
-                    @click="openEditModal(p)"
-                    class="rounded-lg p-2 text-stone-400 transition hover:bg-sky-50 hover:text-sky-600 cursor-pointer"
-                    title="Editar paciente"
-                  >
-                    <AppIcon name="pencil" class="h-[18px] w-[18px]" />
-                  </button>
-                  <button
-                    type="button"
-                    @click="confirmToggle(p)"
-                    class="rounded-lg p-2 transition cursor-pointer"
-                    :class="p.estado ? 'text-stone-400 hover:bg-amber-50 hover:text-amber-600' : 'text-stone-400 hover:bg-emerald-50 hover:text-emerald-600'"
-                    :title="p.estado ? 'Desactivar paciente' : 'Reactivar paciente'"
-                  >
-                    <AppIcon :name="p.estado ? 'ban' : 'check-circle'" class="h-[18px] w-[18px]" />
-                  </button>
-                  <button
-                    type="button"
-                    @click="confirmDelete(p)"
-                    class="rounded-lg p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
-                    title="Eliminar paciente"
-                  >
-                    <AppIcon name="trash" class="h-[18px] w-[18px]" />
-                  </button>
-                </div>
+                <ActionPopover>
+                  <template #default="{ close }">
+                    <ActionPopoverItem
+                      :href="`/pacientes/${p.id}`"
+                      icon="eye"
+                      label="Ver ficha clínica"
+                      @click="close"
+                    />
+                    <ActionPopoverItem
+                      icon="pencil"
+                      label="Editar paciente"
+                      @click="openEditModal(p); close()"
+                    />
+                    <ActionPopoverItem
+                      :icon="p.estado ? 'ban' : 'check'"
+                      :label="p.estado ? 'Desactivar paciente' : 'Activar paciente'"
+                      @click="confirmToggle(p); close()"
+                    />
+                    <div class="border-t border-slate-100 my-0.5"></div>
+                    <ActionPopoverItem
+                      icon="trash"
+                      label="Eliminar paciente"
+                      danger
+                      @click="confirmDelete(p); close()"
+                    />
+                  </template>
+                </ActionPopover>
               </td>
             </tr>
           </tbody>
@@ -310,6 +409,9 @@ import EmptyState from '@/Components/EmptyState.vue';
 import Pagination from '@/Components/Pagination.vue';
 import Avatar from '@/Components/Avatar.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import ToggleSwitch from '@/Components/ToggleSwitch.vue';
+import ActionPopover from '@/Components/ActionPopover.vue';
+import ActionPopoverItem from '@/Components/ActionPopoverItem.vue';
 
 const props = defineProps({
   pacientes: Object,
