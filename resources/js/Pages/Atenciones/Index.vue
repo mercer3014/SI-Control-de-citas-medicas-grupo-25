@@ -246,31 +246,33 @@
                 </span>
               </td>
 
-              <!-- Acción con Popover -->
+              <!-- Acción Directa en Escritorio -->
               <td class="py-2.5 px-3 text-right">
-                <ActionPopover>
-                  <template #default="{ close }">
-                    <template v-if="c.estado_id === 1 || c.estado_id === 2">
-                      <ActionPopoverItem
-                        icon="user-check"
-                        label="Atender paciente"
-                        @click="openAtenderModal(c); close()"
-                      />
-                    </template>
-                    <template v-else-if="c.estado_id === 3 && c.atencion">
-                      <ActionPopoverItem
-                        icon="clipboard"
-                        label="Ver informe médico"
-                        @click="openDetalleModal(c.atencion); close()"
-                      />
-                    </template>
-                    <template v-else>
-                      <div class="px-3 py-2 text-[11px] text-slate-400 italic">
-                        Sin acciones disponibles
-                      </div>
-                    </template>
-                  </template>
-                </ActionPopover>
+                <div class="inline-flex items-center gap-1 justify-end">
+                  <button
+                    v-if="c.estado_id === 1 || c.estado_id === 2"
+                    type="button"
+                    @click="openAtenderModal(c)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  >
+                    <AppIcon name="user-check" class="w-3.5 h-3.5" />
+                    <span>Atender</span>
+                  </button>
+
+                  <button
+                    v-else-if="c.estado_id === 3 && c.atencion"
+                    type="button"
+                    @click="openDetalleModal(c.atencion)"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition cursor-pointer"
+                  >
+                    <AppIcon name="clipboard" class="w-3.5 h-3.5" />
+                    <span>Ver Informe</span>
+                  </button>
+
+                  <span v-else class="text-[11px] text-slate-400 italic">
+                    —
+                  </span>
+                </div>
               </td>
             </tr>
 

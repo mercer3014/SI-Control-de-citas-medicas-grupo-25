@@ -208,27 +208,24 @@
                   </div>
                 </td>
                 <td class="py-2.5 px-3 text-right">
-                  <ActionPopover>
-                    <template #default="{ close }">
-                      <ActionPopoverItem
-                        icon="pencil"
-                        label="Editar horario"
-                        @click="openEditModal(h); close()"
-                      />
-                      <ActionPopoverItem
-                        :icon="h.estado ? 'ban' : 'check'"
-                        :label="h.estado ? 'Desactivar horario' : 'Activar horario'"
-                        @click="confirmToggle(h); close()"
-                      />
-                      <div class="border-t border-slate-100 my-0.5"></div>
-                      <ActionPopoverItem
-                        icon="trash"
-                        label="Eliminar horario"
-                        danger
-                        @click="confirmDelete(h); close()"
-                      />
-                    </template>
-                  </ActionPopover>
+                  <div class="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                      title="Editar horario"
+                      @click="openEditModal(h)"
+                    >
+                      <AppIcon name="pencil" size="15" />
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+                      title="Eliminar horario"
+                      @click="confirmDelete(h)"
+                    >
+                      <AppIcon name="trash" size="15" />
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="filteredHorariosTabla.length === 0">

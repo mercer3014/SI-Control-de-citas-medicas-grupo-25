@@ -172,16 +172,16 @@
                 </span>
               </td>
               <td class="py-2.5 px-3 text-right">
-                <ActionPopover>
-                  <template #default="{ close }">
-                    <ActionPopoverItem
-                      icon="trash"
-                      label="Cancelar ausencia"
-                      danger
-                      @click="confirmDelete(a); close()"
-                    />
-                  </template>
-                </ActionPopover>
+                <div class="inline-flex items-center gap-1 justify-end">
+                  <button
+                    type="button"
+                    @click="confirmDelete(a)"
+                    class="w-7 h-7 inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                    title="Cancelar ausencia"
+                  >
+                    <AppIcon name="trash" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
 

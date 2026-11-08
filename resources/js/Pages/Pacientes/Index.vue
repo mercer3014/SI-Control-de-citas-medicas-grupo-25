@@ -2,42 +2,62 @@
   <AppLayout>
     <template #header>Pacientes</template>
 
-    <PageHeader
-      title="Gestión de Pacientes"
-      description="Filiación clínica, datos de emergencia y administración del padrón de pacientes."
-      :breadcrumbs="[{ label: 'Catálogos' }, { label: 'Pacientes' }]"
-    >
-      <template #actions>
+    <div class="space-y-4">
+      <!-- Barra Superior: Filtros y Registro -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          <!-- Buscador -->
+          <div class="relative w-full sm:w-64">
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Buscar por CI, nombre, teléfono..."
+              class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-slate-600 outline-none"
+              @keyup.enter="handleSearch"
+            />
+            <AppIcon name="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          </div>
+
+          <!-- Filtro Tipo de Sangre -->
+          <select
+            v-model="selectedSangre"
+            class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-slate-600 outline-none"
+            @change="handleSearch"
+          >
+            <option value="">Tipo de sangre</option>
+            <option v-for="t in tiposSangre" :key="t" :value="t">{{ t }}</option>
+          </select>
+
+          <!-- Filtro Estado -->
+          <select
+            v-model="selectedEstado"
+            class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-slate-600 outline-none"
+            @change="handleSearch"
+          >
+            <option value="">Todos los estados</option>
+            <option value="1">Activos</option>
+            <option value="0">Inactivos</option>
+          </select>
+
+          <button
+            v-if="search || selectedSangre || selectedEstado !== ''"
+            type="button"
+            @click="clearFilters"
+            class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-300 transition cursor-pointer"
+          >
+            Limpiar
+          </button>
+        </div>
+
         <button
           type="button"
           @click="openCreateModal"
-          class="btn-clinica bg-brand-600 text-white shadow-sm hover:bg-brand-700"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
         >
-          <AppIcon name="plus" class="h-4 w-4" :stroke-width="2.2" />
-          Registrar Paciente
+          <AppIcon name="plus" class="w-3.5 h-3.5" />
+          <span>Registrar Paciente</span>
         </button>
-      </template>
-    </PageHeader>
-
-    <!-- Filtros -->
-    <FilterBar
-      v-model:search="search"
-      search-placeholder="Buscar por CI, nombre, apellido o teléfono…"
-      :has-filters="!!(search || selectedSangre || selectedEstado !== '')"
-      @apply="handleSearch"
-      @clear="clearFilters"
-    >
-      <select v-model="selectedSangre" class="input-clinica w-auto" @change="handleSearch">
-        <option value="">Tipo de sangre</option>
-        <option v-for="t in tiposSangre" :key="t" :value="t">{{ t }}</option>
-      </select>
-
-      <select v-model="selectedEstado" class="input-clinica w-auto" @change="handleSearch">
-        <option value="">Todos los estados</option>
-        <option value="1">Activos</option>
-        <option value="0">Inactivos</option>
-      </select>
-    </FilterBar>
+      </div>
 
     <!-- Vista Móvil: Tarjetas Responsivas con Toggle y Popover -->
     <div class="block md:hidden space-y-3">
@@ -203,33 +223,31 @@
                 </div>
               </td>
               <td class="text-right">
-                <ActionPopover>
-                  <template #default="{ close }">
-                    <ActionPopoverItem
-                      :href="`/pacientes/${p.id}`"
-                      icon="eye"
-                      label="Ver ficha clínica"
-                      @click="close"
-                    />
-                    <ActionPopoverItem
-                      icon="pencil"
-                      label="Editar paciente"
-                      @click="openEditModal(p); close()"
-                    />
-                    <ActionPopoverItem
-                      :icon="p.estado ? 'ban' : 'check'"
-                      :label="p.estado ? 'Desactivar paciente' : 'Activar paciente'"
-                      @click="confirmToggle(p); close()"
-                    />
-                    <div class="border-t border-slate-100 my-0.5"></div>
-                    <ActionPopoverItem
-                      icon="trash"
-                      label="Eliminar paciente"
-                      danger
-                      @click="confirmDelete(p); close()"
-                    />
-                  </template>
-                </ActionPopover>
+                <div class="inline-flex items-center gap-1 justify-end">
+                  <Link
+                    :href="`/pacientes/${p.id}`"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                    title="Ver ficha clínica"
+                  >
+                    <AppIcon name="eye" class="w-3.5 h-3.5" />
+                  </Link>
+                  <button
+                    type="button"
+                    @click="openEditModal(p)"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                    title="Editar paciente"
+                  >
+                    <AppIcon name="pencil" class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    @click="confirmDelete(p)"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                    title="Eliminar paciente"
+                  >
+                    <AppIcon name="trash" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -247,9 +265,10 @@
           </button>
         </EmptyState>
       </div>
-
-      <Pagination :paginator="pacientes" />
     </div>
+
+    <Pagination :paginator="pacientes" />
+  </div>
 
     <!-- Modal: Formulario de paciente -->
     <Modal

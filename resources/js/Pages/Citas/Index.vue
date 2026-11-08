@@ -232,39 +232,49 @@
                 </span>
               </td>
 
-              <!-- Acciones Contextuales (Popover) -->
+              <!-- Acciones Directas en Escritorio -->
               <td class="py-2.5 px-3 text-right">
-                <ActionPopover>
-                  <template #default="{ close }">
-                    <template v-if="c.estado_id === 1 || c.estado_id === 2">
-                      <ActionPopoverItem
-                        icon="clock"
-                        label="Reprogramar cita"
-                        @click="openReprogramarModal(c); close()"
-                      />
-                      <div class="border-t border-slate-100 my-0.5"></div>
-                      <ActionPopoverItem
-                        icon="ban"
-                        label="Cancelar cita"
-                        danger
-                        @click="openCancelarModal(c); close()"
-                      />
-                    </template>
-                    <template v-else-if="c.estado_id === 3">
-                      <ActionPopoverItem
-                        :href="`/historial-citas?buscar=${c.codigo_reserva}`"
-                        icon="history"
-                        label="Ver en historial clínico"
-                        @click="close"
-                      />
-                    </template>
-                    <template v-else>
-                      <div class="px-3 py-2 text-[11px] text-slate-400 italic">
-                        {{ c.motivo_cancelacion || 'Cancelada' }}
-                      </div>
-                    </template>
-                  </template>
-                </ActionPopover>
+                <div class="inline-flex items-center gap-1 justify-end">
+                  <!-- Reprogramar (si está Programada o Confirmada) -->
+                  <button
+                    v-if="c.estado_id === 1 || c.estado_id === 2"
+                    type="button"
+                    @click="openReprogramarModal(c)"
+                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                    title="Reprogramar cita"
+                  >
+                    <AppIcon name="clock" class="w-3.5 h-3.5" />
+                  </button>
+
+                  <!-- Cancelar (si está Programada o Confirmada) -->
+                  <button
+                    v-if="c.estado_id === 1 || c.estado_id === 2"
+                    type="button"
+                    @click="openCancelarModal(c)"
+                    class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    title="Cancelar cita"
+                  >
+                    <AppIcon name="ban" class="w-3.5 h-3.5" />
+                  </button>
+
+                  <!-- Atendida -->
+                  <span
+                    v-if="c.estado_id === 3"
+                    class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                    title="Consulta médica completada"
+                  >
+                    Atendida
+                  </span>
+
+                  <!-- Cancelada -->
+                  <span
+                    v-if="c.estado_id === 4"
+                    class="text-[10px] text-slate-400 italic max-w-[120px] truncate"
+                    :title="c.motivo_cancelacion"
+                  >
+                    {{ c.motivo_cancelacion || 'Cancelada' }}
+                  </span>
+                </div>
               </td>
             </tr>
 
