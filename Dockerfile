@@ -8,11 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng-dev \
         libjpeg62-turbo-dev \
         libfreetype6-dev \
+        libicu-dev \
         curl \
         ca-certificates \
         gnupg \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql zip bcmath pcntl opcache gd \
+    && docker-php-ext-install -j$(nproc) pdo_pgsql pgsql zip bcmath pcntl opcache gd intl \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && corepack enable \
