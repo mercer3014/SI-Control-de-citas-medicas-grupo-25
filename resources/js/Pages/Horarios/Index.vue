@@ -215,7 +215,7 @@
                       title="Editar horario"
                       @click="openEditModal(h)"
                     >
-                      <AppIcon name="pencil" size="15" />
+                      <AppIcon name="pencil" class="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
@@ -223,7 +223,7 @@
                       title="Eliminar horario"
                       @click="confirmDelete(h)"
                     >
-                      <AppIcon name="trash" size="15" />
+                      <AppIcon name="trash" class="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </td>
