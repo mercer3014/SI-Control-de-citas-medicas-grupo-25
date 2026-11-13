@@ -114,6 +114,23 @@ class CitaController extends Controller
         $horaInicio = substr($request->hora_inicio, 0, 5);
         $horaFin = substr($request->hora_fin, 0, 5);
 
+        // Guard anti-colisión: Validar que el médico no tenga ya una cita activa en ese mismo horario
+        $medEsp = MedicoEspecialidadModel::find($request->medico_especialidad_id);
+        $existeColision = CitaModel::whereHas('medicoEspecialidad', function ($q) use ($medEsp) {
+                $q->where('medico_id', $medEsp->medico_id);
+            })
+            ->whereDate('fecha', $request->fecha)
+            ->whereIn('estado_id', [EstadoCitaModel::PROGRAMADA, EstadoCitaModel::CONFIRMADA])
+            ->where(function ($q) use ($horaInicio, $horaFin) {
+                $q->where('hora_inicio', '<', $horaFin)
+                  ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+
+        if ($existeColision) {
+            return back()->withErrors(['hora_inicio' => 'El médico ya cuenta con una cita programada o confirmada en ese horario.']);
+        }
+
         $cita = CitaModel::create([
             'codigo_reserva' => $codigo,
             'paciente_id' => $request->paciente_id,
@@ -148,6 +165,24 @@ class CitaController extends Controller
 
         $horaInicio = substr($request->hora_inicio, 0, 5);
         $horaFin = substr($request->hora_fin, 0, 5);
+
+        // Guard anti-colisión: Validar que no choque con otra cita del mismo médico
+        $medicoId = $cita->medicoEspecialidad?->medico_id;
+        $existeColision = CitaModel::where('id', '!=', $cita->id)
+            ->whereHas('medicoEspecialidad', function ($q) use ($medicoId) {
+                $q->where('medico_id', $medicoId);
+            })
+            ->whereDate('fecha', $request->fecha)
+            ->whereIn('estado_id', [EstadoCitaModel::PROGRAMADA, EstadoCitaModel::CONFIRMADA])
+            ->where(function ($q) use ($horaInicio, $horaFin) {
+                $q->where('hora_inicio', '<', $horaFin)
+                  ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+
+        if ($existeColision) {
+            return back()->withErrors(['hora_inicio' => 'El médico ya cuenta con una cita en ese horario para la fecha seleccionada.']);
+        }
 
         $cita->update([
             'fecha' => $request->fecha,
