@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/citas', [CitaController::class, 'index'])->name('citas.index');
         Route::get('/citas/slots-disponibles', [CitaController::class, 'slots'])->name('citas.slots');
         Route::post('/citas', [CitaController::class, 'store'])->name('citas.store');
+        Route::post('/citas/{cita}/confirmar', [CitaController::class, 'confirmar'])->name('citas.confirmar');
         Route::post('/citas/{cita}/reprogramar', [CitaController::class, 'reprogramar'])->name('citas.reprogramar');
         Route::post('/citas/{cita}/cancelar', [CitaController::class, 'cancelar'])->name('citas.cancelar');
 

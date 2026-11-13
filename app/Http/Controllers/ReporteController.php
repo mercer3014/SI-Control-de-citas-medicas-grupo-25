@@ -101,13 +101,22 @@ class ReporteController extends Controller
 
     public function exportCitas(Request $request, ExportExcelService $excel)
     {
-        $citas = CitaModel::with([
+        $query = CitaModel::with([
             'paciente.persona',
             'medicoEspecialidad.medico.persona',
             'medicoEspecialidad.especialidad',
             'estado',
             'atencion',
-        ])->latest('fecha')->get();
+        ]);
+
+        if ($request->filled('fecha_inicio')) {
+            $query->whereDate('fecha', '>=', $request->fecha_inicio);
+        }
+        if ($request->filled('fecha_fin')) {
+            $query->whereDate('fecha', '<=', $request->fecha_fin);
+        }
+
+        $citas = $query->latest('fecha')->get();
 
         BitacoraService::registrar('EXPORTACION_EXCEL', 'Reportes', 'Exportación de citas a Excel (.xlsx)');
 

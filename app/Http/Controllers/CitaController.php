@@ -199,6 +199,21 @@ class CitaController extends Controller
         return back()->with('success', "Cita {$cita->codigo_reserva} reprogramada exitosamente.");
     }
 
+    public function confirmar(CitaModel $cita)
+    {
+        $cita->update([
+            'estado_id' => EstadoCitaModel::CONFIRMADA,
+        ]);
+
+        BitacoraService::registrar(
+            'CONFIRMACION_CITA',
+            'Citas',
+            "Cita {$cita->codigo_reserva} confirmada por recepción."
+        );
+
+        return back()->with('success', "Cita {$cita->codigo_reserva} confirmada exitosamente.");
+    }
+
     public function cancelar(Request $request, CitaModel $cita)
     {
         $request->validate([

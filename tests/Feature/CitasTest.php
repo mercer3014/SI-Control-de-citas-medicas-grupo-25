@@ -42,6 +42,10 @@ class CitasTest extends TestCase
             'estado' => true,
         ]);
 
+        // Próximo lunes
+        $proximoLunes = now()->next(1)->format('Y-m-d');
+        CitaModel::where('medico_especialidad_id', $medicoEsp->id)->whereDate('fecha', $proximoLunes)->delete();
+
         $response = $this->actingAs($admin)->post('/citas', [
             'paciente_id' => $paciente->id,
             'medico_especialidad_id' => $medicoEsp->id,
@@ -145,6 +149,7 @@ class CitasTest extends TestCase
         $paciente2 = $pacientes[1];
 
         $fechaTest = now()->addDays(280 + random_int(1, 50))->next(2)->format('Y-m-d');
+        CitaModel::where('medico_especialidad_id', $medicoEsp->id)->whereDate('fecha', $fechaTest)->delete();
 
         // 1. Programar primera cita legítima de 10:00 a 10:30
         $resp1 = $this->actingAs($admin)->post('/citas', [

@@ -77,11 +77,15 @@ class CicloDosCasosDeUsoTest extends TestCase
         $admin = UsuarioModel::where('username', 'admin')->first();
         $medicoEsp = MedicoEspecialidadModel::first();
         $paciente = PacienteModel::first();
+        $fechaCita = now()->addDays(7)->format('Y-m-d');
+
+        // Limpiar cualquier cita previa de prueba en esa fecha
+        CitaModel::where('medico_especialidad_id', $medicoEsp->id)->whereDate('fecha', $fechaCita)->delete();
 
         $response = $this->actingAs($admin)->post('/citas', [
             'paciente_id' => $paciente->id,
             'medico_especialidad_id' => $medicoEsp->id,
-            'fecha' => now()->addDays(7)->format('Y-m-d'),
+            'fecha' => $fechaCita,
             'hora_inicio' => '08:00',
             'hora_fin' => '08:30',
             'motivo_consulta' => 'Evaluación de rutina anual',
@@ -115,6 +119,9 @@ class CicloDosCasosDeUsoTest extends TestCase
         ]);
 
         $nuevaFecha = now()->addDays(6)->format('Y-m-d');
+
+        // Limpiar cualquier cita en la fecha destino de reprogramación
+        CitaModel::where('medico_especialidad_id', $medicoEsp->id)->whereDate('fecha', $nuevaFecha)->delete();
 
         $response = $this->actingAs($admin)->post("/citas/{$cita->id}/reprogramar", [
             'fecha' => $nuevaFecha,
