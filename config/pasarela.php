@@ -22,4 +22,10 @@ return [
     | la clínica decide cobrar en esa moneda.
     */
     'stripe_currency' => env('STRIPE_CURRENCY', ''),
+
+    /*
+    | Bolivianos por 1 unidad de la moneda de Stripe (p. ej. 6.96 para usd).
+    | 0 = sin conversion (el monto en BOB se envia tal cual).
+    */
+    'stripe_tasa_cambio' => (float) env('STRIPE_TASA_CAMBIO', 0),
 ];

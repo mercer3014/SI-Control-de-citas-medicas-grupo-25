@@ -112,7 +112,7 @@ class PagoController extends Controller
     /**
      * CU-18 mensajes 7-10: pago Pendiente y redirección HTTPS al checkout.
      */
-    public function store(PagoRequest $request): RedirectResponse
+    public function store(PagoRequest $request): HttpResponse
     {
         $cita = CitaModel::with('medicoEspecialidad')->findOrFail($request->integer('cita_id'));
         $this->autorizarCitaDelPaciente($request, $cita);
@@ -161,7 +161,8 @@ class PagoController extends Controller
             return back()->with('error', 'No se recibió respuesta de la pasarela');
         }
 
-        return redirect()->to($url);
+        // Inertia::location fuerza navegacion completa (el checkout es otro dominio).
+        return Inertia::location($url);
     }
 
     /**
@@ -178,6 +179,34 @@ class PagoController extends Controller
         }
 
         return $this->confirmarPago($this->pasarela->traducirNotificacion($payload));
+    }
+
+    /**
+     * Respaldo del webhook: al volver del checkout consulta el estado real en
+     * la pasarela y aplica la misma confirmacion idempotente.
+     */
+    public function conciliar(PagoModel $pago): void
+    {
+        if ($pago->estado !== PagoModel::PENDIENTE || $this->pasarela->driver() === 'fake') {
+            return;
+        }
+
+        try {
+            $estado = $this->pasarela->consultarEstado((string) $pago->referencia_transaccion);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return;
+        }
+
+        if ($estado === PagoModel::APROBADO) {
+            $this->confirmarPago([
+                'referencia' => $pago->referencia_transaccion,
+                'estado' => PagoModel::APROBADO,
+                'monto' => null,
+                'moneda' => $pago->moneda,
+            ]);
+        }
     }
 
     /**

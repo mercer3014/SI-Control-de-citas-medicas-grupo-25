@@ -39,6 +39,7 @@ class PasarelaPagoService implements InterfazPasarela
             (string) config('pasarela.stripe_secret', $this->apiKey),
             (string) config('pasarela.stripe_webhook_secret', $this->webhookSecret),
             (string) config('pasarela.stripe_currency', ''),
+            (float) config('pasarela.stripe_tasa_cambio', 0),
         );
     }
 
