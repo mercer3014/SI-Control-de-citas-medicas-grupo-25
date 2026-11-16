@@ -181,6 +181,34 @@ class PagoController extends Controller
     }
 
     /**
+     * Respaldo del webhook: al volver del checkout consulta el estado real en
+     * la pasarela y aplica la misma confirmacion idempotente.
+     */
+    public function conciliar(PagoModel $pago): void
+    {
+        if ($pago->estado !== PagoModel::PENDIENTE || $this->pasarela->driver() === 'fake') {
+            return;
+        }
+
+        try {
+            $estado = $this->pasarela->consultarEstado((string) $pago->referencia_transaccion);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return;
+        }
+
+        if ($estado === PagoModel::APROBADO) {
+            $this->confirmarPago([
+                'referencia' => $pago->referencia_transaccion,
+                'estado' => PagoModel::APROBADO,
+                'monto' => null,
+                'moneda' => $pago->moneda,
+            ]);
+        }
+    }
+
+    /**
      * CU-19 mensajes 5-16: validar, reembolsar en la pasarela y cancelar si no fue atendida.
      */
     public function reembolsar(Request $request, PagoModel $pago): RedirectResponse

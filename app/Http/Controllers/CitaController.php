@@ -273,6 +273,11 @@ class CitaController extends Controller
                 ->where('referencia_transaccion', $request->comprobante)
                 ->whereHas('cita', fn ($q) => $q->where('paciente_id', $paciente->id))
                 ->first();
+
+            if ($comprobante && $comprobante->estado === PagoModel::PENDIENTE) {
+                app(PagoController::class)->conciliar($comprobante);
+                $comprobante->refresh()->load(['metodoPago', 'cita.estado', 'cita.medicoEspecialidad.medico.persona', 'cita.medicoEspecialidad.especialidad']);
+            }
         }
 
         return Inertia::render('Citas/MisCitas', [

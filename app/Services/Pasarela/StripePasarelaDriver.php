@@ -16,6 +16,7 @@ class StripePasarelaDriver
         private readonly string $secretKey,
         private readonly string $webhookSecret,
         private readonly string $currency,
+        private readonly float $tasaCambio = 0.0,
     ) {}
 
     public function crearTransaccion(string $monto, string $referencia): string
@@ -25,6 +26,10 @@ class StripePasarelaDriver
         }
 
         $moneda = strtolower($this->currency !== '' ? $this->currency : 'bob');
+        $importe = (float) $monto;
+        if ($moneda !== 'bob' && $this->tasaCambio > 0) {
+            $importe = $importe / $this->tasaCambio;
+        }
 
         $response = Http::withToken($this->secretKey)
             ->asForm()
@@ -37,7 +42,7 @@ class StripePasarelaDriver
                 'metadata[referencia]' => $referencia,
                 'line_items[0][quantity]' => 1,
                 'line_items[0][price_data][currency]' => $moneda,
-                'line_items[0][price_data][unit_amount]' => (int) round(((float) $monto) * 100),
+                'line_items[0][price_data][unit_amount]' => (int) round($importe * 100),
                 'line_items[0][price_data][product_data][name]' => 'Consulta médica Clínica Vida Salud',
             ]);
 
