@@ -14,6 +14,10 @@ class DashboardController extends Controller
             return redirect()->route('especialidades.index');
         }
 
+        if ($user && $user->rol && strtolower($user->rol->nombre) === 'paciente') {
+            return redirect()->route('mis-citas');
+        }
+
         return redirect()->route('pacientes.index');
     }
 }

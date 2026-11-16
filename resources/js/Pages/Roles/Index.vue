@@ -207,6 +207,8 @@ const moduloCategorias = {
   cancelar_citas: 'Agenda y Citas Médicas',
   registrar_atencion: 'Atención Médica y Diagnóstico',
   ver_reportes: 'Reportes y Estadísticas',
+  gestionar_pagos: 'Gestión de Pagos',
+  pagar_consulta: 'Gestión de Pagos',
 };
 
 const filtroPermiso = ref('');

@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Services\InterfazPasarela;
+use App\Services\PasarelaPagoService;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(InterfazPasarela::class, PasarelaPagoService::class);
     }
 
     /**
@@ -19,8 +22,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // El proyecto resuelve las vistas en resources/js/Pages (mayúscula).
+        // El default de Inertia es js/pages y en Linux no coincide.
+        config(['inertia.pages.paths' => [resource_path('js/Pages')]]);
+
         if (app()->environment('production') || env('APP_ENV') === 'production') {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
     }
 }

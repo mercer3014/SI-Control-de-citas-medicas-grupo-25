@@ -26,6 +26,21 @@
             />
           </div>
 
+          <select v-model="especialidadId" class="px-2.5 py-1.5 rounded-lg border border-slate-300 focus:border-slate-600 outline-none bg-white">
+            <option value="">Especialidad: Todas</option>
+            <option v-for="esp in catalogos.especialidades" :key="esp.id" :value="String(esp.id)">{{ esp.nombre }}</option>
+          </select>
+
+          <select v-model="medicoId" class="px-2.5 py-1.5 rounded-lg border border-slate-300 focus:border-slate-600 outline-none bg-white">
+            <option value="">Médico: Todos</option>
+            <option v-for="med in catalogos.medicos" :key="med.id" :value="String(med.id)">{{ med.nombre }}</option>
+          </select>
+
+          <select v-model="metodoPagoId" class="px-2.5 py-1.5 rounded-lg border border-slate-300 focus:border-slate-600 outline-none bg-white">
+            <option value="">Método de pago: Todos</option>
+            <option v-for="met in catalogos.metodos" :key="met.id" :value="String(met.id)">{{ met.nombre }}</option>
+          </select>
+
           <button
             type="submit"
             class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-xs transition cursor-pointer"
@@ -37,7 +52,7 @@
         <!-- Botones de Exportación a Excel .xlsx -->
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <a
-            href="/reportes/export-citas"
+            :href="`/reportes/export-citas?${queryExport}`"
             target="_blank"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs shadow-xs transition cursor-pointer"
             title="Descargar libro de citas en formato Excel"
@@ -57,7 +72,7 @@
           </a>
 
           <a
-            href="/reportes/export-general"
+            :href="`/reportes/export-general?${queryExport}`"
             target="_blank"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium rounded-lg text-xs shadow-xs transition cursor-pointer"
             title="Descargar resumen de métricas en formato Excel"
@@ -69,7 +84,7 @@
       </div>
 
       <!-- Tarjetas de Métricas Ejecutivas (KPIs) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div v-if="!metricas.sin_informacion" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         <!-- Total Citas -->
         <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div class="flex items-center justify-between mb-2">
@@ -131,12 +146,22 @@
           <p class="text-2xl font-bold text-indigo-700 font-mono">
             Bs. {{ formatMoney(metricas.ingresos_totales) }}
           </p>
-          <span class="text-[10px] text-slate-400 mt-1 block">Por aranceles atendidos</span>
+          <span class="text-[10px] text-slate-400 mt-1 block">Pagos aprobados en el periodo</span>
+          <span class="text-[10px] text-rose-600 mt-0.5 block font-medium">
+            Reembolsos del periodo: Bs. {{ formatMoney(metricas.reembolsos_periodo) }}
+          </span>
         </div>
       </div>
 
-      <!-- Tablas de Rendimiento: Médicos y Especialidades -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div
+        v-if="metricas.sin_informacion"
+        class="bg-white border border-dashed border-slate-300 rounded-xl px-4 py-10 text-center text-sm text-slate-500"
+      >
+        No hay información para procesar
+      </div>
+
+      <!-- Tablas de Rendimiento: Médicos, métodos de pago y especialidades -->
+      <div v-if="!metricas.sin_informacion" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Rendimiento por Médico -->
         <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200/80 flex items-center justify-between">
@@ -154,6 +179,7 @@
                   <th class="py-2 px-3">Médico</th>
                   <th class="py-2 px-3 text-center">Citas</th>
                   <th class="py-2 px-3 text-center">Atendidas</th>
+                  <th class="py-2 px-3 text-center">Pagos</th>
                   <th class="py-2 px-3 text-right">Recaudado</th>
                 </tr>
               </thead>
@@ -172,18 +198,45 @@
                       {{ rm.atendidas }}
                     </span>
                   </td>
+                  <td class="py-2.5 px-3 text-center font-mono text-slate-700">{{ rm.pagos_aprobados || 0 }}</td>
                   <td class="py-2.5 px-3 text-right font-mono font-semibold text-slate-800">
                     Bs. {{ formatMoney(rm.ingresos) }}
                   </td>
                 </tr>
 
                 <tr v-if="rendimientoMedicos.length === 0">
-                  <td colspan="5" class="py-6 text-center text-slate-400 text-xs">
+                  <td colspan="6" class="py-6 text-center text-slate-400 text-xs">
                     Sin registros médicos en este rango de fechas.
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+        <!-- Recaudación por método de pago -->
+        <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-200/80">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+              Recaudación por método de pago
+            </h3>
+          </div>
+          <div class="p-4 space-y-3">
+            <div v-for="met in recaudacionMetodos" :key="met.metodo_pago_id" class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-slate-800">{{ met.nombre }}</span>
+                <span class="font-mono text-slate-600 text-[11px]">
+                  Bs. {{ formatMoney(met.total) }} ({{ met.cantidad }})
+                </span>
+              </div>
+              <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                <div class="bg-indigo-600 h-full rounded-full" :style="{ width: `${met.porcentaje}%` }"></div>
+              </div>
+            </div>
+            <div v-if="!recaudacionMetodos?.length" class="py-4 text-center text-slate-400 text-xs">
+              Sin pagos aprobados en este rango.
+            </div>
           </div>
         </div>
 
@@ -226,13 +279,14 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -241,17 +295,29 @@ const props = defineProps({
   metricas: Object,
   rendimientoMedicos: Array,
   demandaEspecialidades: Array,
+  recaudacionMetodos: { type: Array, default: () => [] },
+  catalogos: { type: Object, default: () => ({ especialidades: [], medicos: [], metodos: [] }) },
   filters: Object,
 });
 
 const fechaInicio = ref(props.filters?.fecha_inicio || '');
 const fechaFin = ref(props.filters?.fecha_fin || '');
+const especialidadId = ref(props.filters?.especialidad_id || '');
+const medicoId = ref(props.filters?.medico_id || '');
+const metodoPagoId = ref(props.filters?.metodo_pago_id || '');
+
+const filtros = () => ({
+  fecha_inicio: fechaInicio.value,
+  fecha_fin: fechaFin.value,
+  especialidad_id: especialidadId.value,
+  medico_id: medicoId.value,
+  metodo_pago_id: metodoPagoId.value,
+});
+
+const queryExport = computed(() => new URLSearchParams(filtros()).toString());
 
 const handleFilter = () => {
-  router.get('/reportes', {
-    fecha_inicio: fechaInicio.value,
-    fecha_fin: fechaFin.value,
-  }, { preserveState: true, replace: true });
+  router.get('/reportes', filtros(), { preserveState: true, replace: true });
 };
 
 const formatMoney = (val) => {
