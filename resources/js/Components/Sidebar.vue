@@ -131,6 +131,7 @@ const userRole = computed(() => page.props.auth?.user?.rol?.nombre || '');
 const isAdmin = computed(() => page.props.auth?.user?.rol?.nombre?.toLowerCase() === 'administrador');
 const isRecepcionista = computed(() => page.props.auth?.user?.rol?.nombre?.toLowerCase() === 'recepcionista');
 const isMedico = computed(() => page.props.auth?.user?.rol?.nombre?.toLowerCase() === 'médico' || page.props.auth?.user?.rol?.nombre?.toLowerCase() === 'medico');
+const isPaciente = computed(() => page.props.auth?.user?.rol?.nombre?.toLowerCase() === 'paciente');
 
 const sections = computed(() => {
   // 1. Atención y Citas
@@ -139,8 +140,16 @@ const sections = computed(() => {
     items: [],
   };
 
+  if (isPaciente.value) {
+    atencion.items.push({ label: 'Mis Citas', icon: 'calendar', href: '/mis-citas', component: 'Citas/MisCitas' });
+  }
+
   if (isAdmin.value || isRecepcionista.value || isMedico.value) {
-    atencion.items.push({ label: 'Citas Médicas', icon: 'calendar', href: '/citas', component: 'Citas' });
+    atencion.items.push({ label: 'Citas Médicas', icon: 'calendar', href: '/citas', component: 'Citas/Index' });
+  }
+
+  if (isAdmin.value) {
+    atencion.items.push({ label: 'Gestión de Pagos', icon: 'credit-card', href: '/pagos', component: 'Pagos/GestionPagos' });
   }
 
   if (isAdmin.value || isRecepcionista.value) {

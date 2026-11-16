@@ -2,24 +2,26 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use App\Models\RolModel;
+use App\Models\AntecedenteMedicoModel;
+use App\Models\AtencionClinicaModel;
+use App\Models\AusenciaMedicaModel;
+use App\Models\BitacoraModel;
+use App\Models\CitaModel;
+use App\Models\DiaSemanaModel;
+use App\Models\EspecialidadModel;
+use App\Models\EstadoCitaModel;
+use App\Models\HorarioAtencionModel;
+use App\Models\MedicoEspecialidadModel;
+use App\Models\MedicoModel;
+use App\Models\MetodoPagoModel;
+use App\Models\PacienteModel;
 use App\Models\PermisoModel;
 use App\Models\PersonaModel;
+use App\Models\RolModel;
 use App\Models\UsuarioModel;
-use App\Models\DiaSemanaModel;
-use App\Models\EstadoCitaModel;
-use App\Models\EspecialidadModel;
-use App\Models\MedicoModel;
-use App\Models\MedicoEspecialidadModel;
-use App\Models\PacienteModel;
-use App\Models\AntecedenteMedicoModel;
-use App\Models\BitacoraModel;
-use App\Models\HorarioAtencionModel;
-use App\Models\AusenciaMedicaModel;
-use App\Models\CitaModel;
-use App\Models\AtencionClinicaModel;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -84,11 +86,14 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'cancelar_citas', 'descripcion' => 'Cancelar citas programadas'],
             ['nombre' => 'registrar_atencion', 'descripcion' => 'Registrar diagnóstico y tratamiento clínico'],
             ['nombre' => 'ver_reportes', 'descripcion' => 'Generar reportes estadísticos y administrativos'],
+            ['nombre' => 'gestionar_pagos', 'descripcion' => 'Consultar pagos y anular o reembolsar cobros aprobados'],
+            ['nombre' => 'pagar_consulta', 'descripcion' => 'Pagar en línea el costo de una consulta programada'],
         ];
 
         $adminRol = RolModel::find(1);
         $recepRol = RolModel::find(2);
         $medicoRol = RolModel::find(3);
+        $pacienteRol = RolModel::find(4);
 
         foreach ($permisos as $p) {
             $perm = PermisoModel::firstOrCreate(['nombre' => $p['nombre']], $p);
@@ -100,6 +105,10 @@ class DatabaseSeeder extends Seeder
 
             if (in_array($p['nombre'], ['registrar_atencion'])) {
                 $medicoRol->permisos()->syncWithoutDetaching([$perm->id]);
+            }
+
+            if ($p['nombre'] === 'pagar_consulta' && $pacienteRol) {
+                $pacienteRol->permisos()->syncWithoutDetaching([$perm->id]);
             }
         }
 
@@ -130,7 +139,7 @@ class DatabaseSeeder extends Seeder
         // -------------------------------------------------------------
         // 6. USUARIOS Y PERSONAL CLAVE
         // -------------------------------------------------------------
-        
+
         // A) Administrador General
         $pAdmin = PersonaModel::updateOrCreate(
             ['ci' => '10000001'],
@@ -221,7 +230,7 @@ class DatabaseSeeder extends Seeder
                 'especialidades' => [
                     ['id' => 5, 'precio' => 180.00], // Cardiología
                     ['id' => 1, 'precio' => 120.00], // Medicina General
-                ]
+                ],
             ],
             [
                 'ci' => '30000002', 'nombres' => 'Mariana Elena', 'apellidos' => 'Flores Justiniano',
@@ -230,7 +239,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dra.flores', 'email' => 'mariana.flores@vidasalud.com',
                 'especialidades' => [
                     ['id' => 2, 'precio' => 150.00], // Pediatría
-                ]
+                ],
             ],
             [
                 'ci' => '30000003', 'nombres' => 'Jorge Luis', 'apellidos' => 'Mendoza Mercado',
@@ -239,7 +248,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dr.mendoza', 'email' => 'jorge.mendoza@vidasalud.com',
                 'especialidades' => [
                     ['id' => 6, 'precio' => 200.00], // Traumatología
-                ]
+                ],
             ],
             [
                 'ci' => '30000004', 'nombres' => 'Valeria Sofía', 'apellidos' => 'Pinto Salvatierra',
@@ -248,7 +257,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dra.pinto', 'email' => 'valeria.pinto@vidasalud.com',
                 'especialidades' => [
                     ['id' => 3, 'precio' => 160.00], // Ginecología
-                ]
+                ],
             ],
             [
                 'ci' => '30000005', 'nombres' => 'Roberto Carlos', 'apellidos' => 'Suárez Céspedes',
@@ -257,7 +266,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dr.suarez', 'email' => 'roberto.suarez@vidasalud.com',
                 'especialidades' => [
                     ['id' => 4, 'precio' => 130.00], // Odontología
-                ]
+                ],
             ],
             [
                 'ci' => '30000006', 'nombres' => 'Andrea Patricia', 'apellidos' => 'Campero Torrico',
@@ -266,7 +275,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dra.campero', 'email' => 'andrea.campero@vidasalud.com',
                 'especialidades' => [
                     ['id' => 7, 'precio' => 170.00], // Dermatología
-                ]
+                ],
             ],
             [
                 'ci' => '30000007', 'nombres' => 'Sergio Andrés', 'apellidos' => 'Claure Guzmán',
@@ -275,7 +284,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dr.claure', 'email' => 'sergio.claure@vidasalud.com',
                 'especialidades' => [
                     ['id' => 8, 'precio' => 160.00], // Oftalmología
-                ]
+                ],
             ],
             [
                 'ci' => '30000008', 'nombres' => 'Álvaro Mauricio', 'apellidos' => 'Gutiérrez Siles',
@@ -284,7 +293,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dr.gutierrez', 'email' => 'alvaro.gutierrez@vidasalud.com',
                 'especialidades' => [
                     ['id' => 9, 'precio' => 220.00], // Neurología
-                ]
+                ],
             ],
             [
                 'ci' => '30000009', 'nombres' => 'Gabriela Inés', 'apellidos' => 'Ortiz Montero',
@@ -293,7 +302,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dra.ortiz', 'email' => 'gabriela.ortiz@vidasalud.com',
                 'especialidades' => [
                     ['id' => 10, 'precio' => 150.00], // Otorrinolaringología
-                ]
+                ],
             ],
             [
                 'ci' => '30000010', 'nombres' => 'Marcelo David', 'apellidos' => 'Paz Quiroga',
@@ -302,7 +311,7 @@ class DatabaseSeeder extends Seeder
                 'username' => 'dr.paz', 'email' => 'marcelo.paz@vidasalud.com',
                 'especialidades' => [
                     ['id' => 1, 'precio' => 110.00], // Medicina General
-                ]
+                ],
             ],
         ];
 
@@ -723,7 +732,7 @@ class DatabaseSeeder extends Seeder
                             'diagnostico' => $cs['diag'],
                             'tratamiento' => $cs['trat'] ?? null,
                             'notas_adicionales' => $cs['notas'] ?? null,
-                            'fecha_atencion' => $cs['fecha'] . ' ' . $cs['fin'] . ':00',
+                            'fecha_atencion' => $cs['fecha'].' '.$cs['fin'].':00',
                         ]
                     );
                 }
@@ -731,9 +740,22 @@ class DatabaseSeeder extends Seeder
         }
 
         // -------------------------------------------------------------
+        // 12.1 MÉTODOS DE PAGO (catálogo de la pasarela, CU-18)
+        // -------------------------------------------------------------
+        $metodosPago = [
+            ['id' => 1, 'nombre' => 'QR Simple', 'descripcion' => 'Pago mediante código QR interbancario desde la banca móvil.', 'estado' => true],
+            ['id' => 2, 'nombre' => 'Tarjeta de Débito', 'descripcion' => 'Pago con tarjeta de débito Visa o Mastercard.', 'estado' => true],
+            ['id' => 3, 'nombre' => 'Tarjeta de Crédito', 'descripcion' => 'Pago con tarjeta de crédito Visa o Mastercard.', 'estado' => true],
+            ['id' => 4, 'nombre' => 'Transferencia Bancaria', 'descripcion' => 'Pago por transferencia directa a la cuenta de la clínica.', 'estado' => true],
+        ];
+        foreach ($metodosPago as $metodo) {
+            MetodoPagoModel::updateOrCreate(['id' => $metodo['id']], $metodo);
+        }
+
+        // -------------------------------------------------------------
         // 13. SINCRONIZACIÓN DE SECUENCIAS POSTGRESQL (SERIAL / PKEY)
         // -------------------------------------------------------------
-        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+        if (DB::connection()->getDriverName() === 'pgsql') {
             $tablas = [
                 'roles',
                 'permisos',
@@ -751,9 +773,11 @@ class DatabaseSeeder extends Seeder
                 'citas',
                 'atenciones_clinicas',
                 'bitacora',
+                'metodos_pago',
+                'pagos',
             ];
             foreach ($tablas as $t) {
-                \Illuminate\Support\Facades\DB::statement("SELECT setval(pg_get_serial_sequence('{$t}', 'id'), COALESCE((SELECT MAX(id) FROM {$t}), 1));");
+                DB::statement("SELECT setval(pg_get_serial_sequence('{$t}', 'id'), COALESCE((SELECT MAX(id) FROM {$t}), 1));");
             }
         }
     }

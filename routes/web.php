@@ -1,22 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AtencionClinicaController;
+use App\Http\Controllers\AusenciaMedicaController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PasswordResetController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UsuarioController;
-use App\Http\Controllers\RolController;
-use App\Http\Controllers\BitacoraController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\BitacoraController;
+use App\Http\Controllers\CitaController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EspecialidadController;
+use App\Http\Controllers\HorarioAtencionController;
 use App\Http\Controllers\MedicoController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PerfilMedicoController;
-use App\Http\Controllers\HorarioAtencionController;
-use App\Http\Controllers\AusenciaMedicaController;
-use App\Http\Controllers\CitaController;
-use App\Http\Controllers\AtencionClinicaController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\RolController;
+use App\Http\Controllers\UsuarioController;
+use Illuminate\Support\Facades\Route;
+
+// Webhook de la pasarela: sin sesión y sin CSRF (bootstrap/app.php).
+Route::post('/pagos/webhook', [PagoController::class, 'webhook'])->name('pagos.webhook');
 
 // Rutas Públicas / Autenticación
 Route::middleware('guest')->group(function () {
@@ -36,6 +40,21 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // CU-18: el paciente paga sus propias citas programadas.
+    Route::middleware('role:Paciente')->group(function () {
+        Route::get('/mis-citas', [CitaController::class, 'misCitas'])->name('mis-citas');
+        Route::get('/mis-citas/{cita}/pagar', [PagoController::class, 'iniciarPago'])->name('pagos.iniciar');
+        Route::post('/pagos', [PagoController::class, 'store'])->name('pagos.store');
+        Route::get('/pagos/sandbox/{referencia}', [PagoController::class, 'sandbox'])->name('pagos.sandbox');
+        Route::post('/pagos/sandbox/{referencia}', [PagoController::class, 'sandboxConfirmar'])->name('pagos.sandbox.confirmar');
+    });
+
+    // CU-19: solo el administrador anula o reembolsa.
+    Route::middleware('role:Administrador')->group(function () {
+        Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
+        Route::post('/pagos/{pago}/reembolsar', [PagoController::class, 'reembolsar'])->name('pagos.reembolsar');
+    });
 
     // MÓDULO 1: Seguridad, Acceso y Auditoría
     Route::middleware('role:Administrador')->group(function () {
@@ -88,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/citas', [CitaController::class, 'index'])->name('citas.index');
         Route::get('/citas/slots-disponibles', [CitaController::class, 'slots'])->name('citas.slots');
         Route::post('/citas', [CitaController::class, 'store'])->name('citas.store');
+        Route::post('/citas/{cita}/confirmar', [CitaController::class, 'confirmar'])->name('citas.confirmar');
         Route::post('/citas/{cita}/reprogramar', [CitaController::class, 'reprogramar'])->name('citas.reprogramar');
         Route::post('/citas/{cita}/cancelar', [CitaController::class, 'cancelar'])->name('citas.cancelar');
 

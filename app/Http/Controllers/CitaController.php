@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\CitaModel;
-use App\Models\EstadoCitaModel;
-use App\Models\MedicoModel;
 use App\Models\EspecialidadModel;
-use App\Models\PacienteModel;
+use App\Models\EstadoCitaModel;
 use App\Models\MedicoEspecialidadModel;
+use App\Models\MedicoModel;
+use App\Models\MetodoPagoModel;
+use App\Models\PacienteModel;
+use App\Models\PagoModel;
 use App\Services\BitacoraService;
 use App\Services\DisponibilidadCitaService;
 use Illuminate\Http\Request;
@@ -27,15 +29,15 @@ class CitaController extends Controller
         ])->latest('fecha')->latest('hora_inicio');
 
         if ($request->filled('buscar')) {
-            $term = '%' . trim($request->buscar) . '%';
+            $term = '%'.trim($request->buscar).'%';
             $query->where(function ($q) use ($term) {
                 $q->where('codigo_reserva', 'ilike', $term)
-                  ->orWhere('motivo_consulta', 'ilike', $term)
-                  ->orWhereHas('paciente.persona', function ($qp) use ($term) {
-                      $qp->where('nombres', 'ilike', $term)
-                         ->orWhere('apellidos', 'ilike', $term)
-                         ->orWhere('ci', 'ilike', $term);
-                  });
+                    ->orWhere('motivo_consulta', 'ilike', $term)
+                    ->orWhereHas('paciente.persona', function ($qp) use ($term) {
+                        $qp->where('nombres', 'ilike', $term)
+                            ->orWhere('apellidos', 'ilike', $term)
+                            ->orWhere('ci', 'ilike', $term);
+                    });
             });
         }
 
@@ -85,9 +87,9 @@ class CitaController extends Controller
         ]);
 
         $slots = $service->obtenerSlotsDisponibles(
-            (int)$request->medico_especialidad_id,
+            (int) $request->medico_especialidad_id,
             $request->fecha,
-            $request->excluir_cita_id ? (int)$request->excluir_cita_id : null
+            $request->excluir_cita_id ? (int) $request->excluir_cita_id : null
         );
 
         return response()->json($slots);
@@ -108,11 +110,28 @@ class CitaController extends Controller
 
         // Generar código único de reserva (CIT-XXXX)
         do {
-            $codigo = 'CIT-' . strtoupper(Str::random(6));
+            $codigo = 'CIT-'.strtoupper(Str::random(6));
         } while (CitaModel::where('codigo_reserva', $codigo)->exists());
 
         $horaInicio = substr($request->hora_inicio, 0, 5);
         $horaFin = substr($request->hora_fin, 0, 5);
+
+        // Guard anti-colisión: Validar que el médico no tenga ya una cita activa en ese mismo horario
+        $medEsp = MedicoEspecialidadModel::find($request->medico_especialidad_id);
+        $existeColision = CitaModel::whereHas('medicoEspecialidad', function ($q) use ($medEsp) {
+            $q->where('medico_id', $medEsp->medico_id);
+        })
+            ->whereDate('fecha', $request->fecha)
+            ->whereIn('estado_id', [EstadoCitaModel::PROGRAMADA, EstadoCitaModel::CONFIRMADA])
+            ->where(function ($q) use ($horaInicio, $horaFin) {
+                $q->where('hora_inicio', '<', $horaFin)
+                    ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+
+        if ($existeColision) {
+            return back()->withErrors(['hora_inicio' => 'El médico ya cuenta con una cita programada o confirmada en ese horario.']);
+        }
 
         $cita = CitaModel::create([
             'codigo_reserva' => $codigo,
@@ -149,6 +168,24 @@ class CitaController extends Controller
         $horaInicio = substr($request->hora_inicio, 0, 5);
         $horaFin = substr($request->hora_fin, 0, 5);
 
+        // Guard anti-colisión: Validar que no choque con otra cita del mismo médico
+        $medicoId = $cita->medicoEspecialidad?->medico_id;
+        $existeColision = CitaModel::where('id', '!=', $cita->id)
+            ->whereHas('medicoEspecialidad', function ($q) use ($medicoId) {
+                $q->where('medico_id', $medicoId);
+            })
+            ->whereDate('fecha', $request->fecha)
+            ->whereIn('estado_id', [EstadoCitaModel::PROGRAMADA, EstadoCitaModel::CONFIRMADA])
+            ->where(function ($q) use ($horaInicio, $horaFin) {
+                $q->where('hora_inicio', '<', $horaFin)
+                    ->where('hora_fin', '>', $horaInicio);
+            })
+            ->exists();
+
+        if ($existeColision) {
+            return back()->withErrors(['hora_inicio' => 'El médico ya cuenta con una cita en ese horario para la fecha seleccionada.']);
+        }
+
         $cita->update([
             'fecha' => $request->fecha,
             'hora_inicio' => $horaInicio,
@@ -162,6 +199,21 @@ class CitaController extends Controller
         );
 
         return back()->with('success', "Cita {$cita->codigo_reserva} reprogramada exitosamente.");
+    }
+
+    public function confirmar(CitaModel $cita)
+    {
+        $cita->update([
+            'estado_id' => EstadoCitaModel::CONFIRMADA,
+        ]);
+
+        BitacoraService::registrar(
+            'CONFIRMACION_CITA',
+            'Citas',
+            "Cita {$cita->codigo_reserva} confirmada por recepción."
+        );
+
+        return back()->with('success', "Cita {$cita->codigo_reserva} confirmada exitosamente.");
     }
 
     public function cancelar(Request $request, CitaModel $cita)
@@ -185,5 +237,48 @@ class CitaController extends Controller
         );
 
         return back()->with('success', "Cita {$cita->codigo_reserva} cancelada exitosamente.");
+    }
+
+    /**
+     * Portal del paciente: sus citas y el acceso a pagar la consulta (CU-18).
+     */
+    public function misCitas(Request $request)
+    {
+        $paciente = PacienteModel::where('persona_id', $request->user()->persona_id)->first();
+        abort_unless($paciente, 403);
+
+        $citas = CitaModel::with([
+            'medicoEspecialidad.medico.persona',
+            'medicoEspecialidad.especialidad',
+            'estado',
+            'pagos' => function ($q) {
+                $q->select('id', 'cita_id', 'estado', 'referencia_transaccion', 'monto', 'moneda', 'metodo_pago_id', 'fecha_pago')
+                    ->latest('id');
+            },
+        ])
+            ->where('paciente_id', $paciente->id)
+            ->latest('fecha')
+            ->latest('hora_inicio')
+            ->paginate(15)
+            ->withQueryString();
+
+        $comprobante = null;
+        if ($request->filled('comprobante')) {
+            $comprobante = PagoModel::with([
+                'metodoPago',
+                'cita.estado',
+                'cita.medicoEspecialidad.medico.persona',
+                'cita.medicoEspecialidad.especialidad',
+            ])
+                ->where('referencia_transaccion', $request->comprobante)
+                ->whereHas('cita', fn ($q) => $q->where('paciente_id', $paciente->id))
+                ->first();
+        }
+
+        return Inertia::render('Citas/MisCitas', [
+            'citas' => $citas,
+            'metodos' => MetodoPagoModel::query()->activos()->orderBy('nombre')->get(['id', 'nombre', 'descripcion']),
+            'comprobante' => $comprobante,
+        ]);
     }
 }

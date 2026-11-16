@@ -20,7 +20,7 @@ El sistema es una solución web integral orientada a la administración de pacie
 
 ## 2. Tecnologías Empleadas
 
-* **Backend:** PHP 8.2 / Laravel 11 (Arquitectura Modelo-Controlador-Vista estricta).
+* **Backend:** PHP 8.2 / Laravel 12 (Arquitectura Modelo-Controlador-Vista estricta).
 * **Persistencia:** PostgreSQL 18 (Conexión PDO `pgsql`).
 * **Frontend:** Vue.js 3 (Composition API / `<script setup>`) con **Inertia.js** y **Vite**.
 * **Estilos & UI:** Tailwind CSS v4 con sistema de diseño clínico (paleta azul zafiro `#0F2942`, azul `#2563EB`, slate), alta densidad de datos (padding compacto), menú lateral retráctil y ventanas modales de confirmación estilo C# / escritorio.
@@ -110,3 +110,50 @@ Las 8 pruebas automatizadas validan:
 6. Prevención de CI duplicado en pacientes.
 7. Conservación de datos históricos mediante bajas lógicas (`estado = FALSE`).
 8. Generación íntegra de volcado SQL de respaldo.
+
+---
+
+## 6. Pasarela de pagos (CU-18, CU-19 y recaudación de CU-16)
+
+El cobro en línea no guarda datos de tarjeta. `PasarelaPagoService` implementa `InterfazPasarela` y elige el proveedor con `PASARELA_DRIVER` en `.env`:
+
+| Variable | Uso |
+| --- | --- |
+| `PASARELA_DRIVER` | `fake` (sandbox local, valor por defecto) o `stripe` |
+| `PASARELA_WEBHOOK_SECRET` | Secreto HMAC del webhook. Vacío + `fake` usa el secreto de desarrollo `fake-local-sandbox` |
+| `PASARELA_API_KEY` / `PASARELA_URL` | Reservadas para un proveedor HTTP propio |
+| `STRIPE_SECRET` | Clave secreta de Stripe (`sk_test_...`), solo si el driver es `stripe` |
+| `STRIPE_WEBHOOK_SECRET` | Secreto de firma de Stripe (`whsec_...`) |
+| `STRIPE_CURRENCY` | Moneda del Checkout. Stripe no admite BOB; déjela vacía para intentar `bob` o indique una moneda soportada |
+
+```bash
+# .env
+PASARELA_DRIVER=fake
+PASARELA_WEBHOOK_SECRET=
+PASARELA_FAKE_ACEPTA_REEMBOLSO=true
+```
+
+Después de `php artisan migrate --seed` quedan cuatro métodos de pago (QR Simple, tarjeta de débito, tarjeta de crédito y transferencia).
+
+### Probar el flujo local (sin credenciales)
+
+1. Inicie sesión como paciente (`paciente.lucia` / `paciente123`) y abra **Mis Citas**.
+2. En una cita **Programada**, pulse **Pagar consulta**. El monto sale de `medico_especialidad.precio_consulta`.
+3. Elija el método y pulse **Ir a pagar**. El sistema crea el pago en **Pendiente** y abre el checkout simulado.
+4. **Aprobar pago** envía `POST /pagos/webhook` firmado con HMAC-SHA256 (`referencia|estado|monto|moneda`, cabecera `X-Pasarela-Firma`). La cita pasa a **Confirmada** y se muestra el comprobante.
+5. **Rechazar pago** deja la cita **Programada** y muestra «Pago rechazado, intente nuevamente».
+6. Como administrador (`admin` / `admin123`), en **Gestión de Pagos** reembolse un pago **Aprobado**. Si la cita no fue atendida pasa a **Cancelada**; si ya está **Atendida**, no cambia. Un pago que no esté aprobado responde «Solo se pueden reembolsar pagos aprobados».
+7. En **Reportes Administrativos**, la recaudación suma solo pagos **Aprobado** con `fecha_pago` en el rango. **Pendiente** y **Rechazado** no suman. Los **Reembolsado** aparecen aparte como reembolsos del periodo (`fecha_reembolso`).
+
+La ruta `POST /pagos/webhook` está fuera de la verificación CSRF. Reenviar la misma referencia no duplica el pago ni la bitácora.
+
+### Pruebas automáticas PN11–PN18
+
+Con PostgreSQL en marcha (`DB_DATABASE=clinica`, como en `phpunit.xml`):
+
+```bash
+php artisan test --filter=PasarelaPagosTest
+php artisan test
+npm run build
+```
+

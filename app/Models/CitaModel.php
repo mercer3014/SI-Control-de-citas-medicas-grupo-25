@@ -45,4 +45,24 @@ class CitaModel extends Model
     {
         return $this->hasOne(AtencionClinicaModel::class, 'cita_id');
     }
+
+    public function pagos()
+    {
+        return $this->hasMany(PagoModel::class, 'cita_id');
+    }
+
+    public function confirmar(): void
+    {
+        $this->update([
+            'estado_id' => EstadoCitaModel::CONFIRMADA,
+        ]);
+    }
+
+    public function cancelar(string $motivo): void
+    {
+        $this->update([
+            'estado_id' => EstadoCitaModel::CANCELADA,
+            'motivo_cancelacion' => $motivo,
+        ]);
+    }
 }

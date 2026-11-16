@@ -8,12 +8,13 @@ use Illuminate\Support\Facades\Log;
 class ResendService
 {
     protected string $apiKey;
+
     protected string $from;
 
     public function __construct()
     {
-        $this->apiKey = config('services.resend.key', env('RESEND_API_KEY', ''));
-        $this->from = config('services.resend.from', env('RESEND_FROM', 'Clínica Vida Salud <onboarding@resend.dev>'));
+        $this->apiKey = (string) (config('services.resend.key') ?? '');
+        $this->from = (string) (config('services.resend.from') ?: 'Clínica Vida Salud <onboarding@resend.dev>');
     }
 
     public function sendEmail(string $to, string $subject, string $htmlContent): array
@@ -32,10 +33,12 @@ class ResendService
                 return ['success' => true, 'data' => $response->json()];
             }
 
-            Log::error('Resend API Error: ' . $response->body());
+            Log::error('Resend API Error: '.$response->body());
+
             return ['success' => false, 'error' => $response->body()];
         } catch (\Throwable $e) {
-            Log::error('Resend Exception: ' . $e->getMessage());
+            Log::error('Resend Exception: '.$e->getMessage());
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
